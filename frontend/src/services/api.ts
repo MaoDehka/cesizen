@@ -11,7 +11,8 @@ interface ApiOptions {
   class ApiService {
     private async request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
       const url = `${BASE_URL}${endpoint}`;
-      
+      console.log(`Sending request to: ${url}`, options);
+
       // Ajouter les headers par défaut
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -35,11 +36,13 @@ interface ApiOptions {
       // Ajouter le body si nécessaire
       if (options.body) {
         fetchOptions.body = JSON.stringify(options.body);
+        console.log('Request body:', options.body);
       }
       
       // Effectuer la requête
       const response = await fetch(url, fetchOptions);
-      
+      console.log(`Response status: ${response.status}`);
+
       // Gérer les erreurs d'authentification
       if (response.status === 401) {
         localStorage.removeItem('token');

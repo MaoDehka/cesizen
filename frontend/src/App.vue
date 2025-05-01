@@ -2,7 +2,7 @@
   <div class="app-container">
     <header class="app-header">
       <div class="logo-container">
-        <img src="../assets/logo.jpg" alt="CESIZen" class="logo" />
+        <img src="./assets/logo.jpg" alt="CESIZen" class="logo" />
         <h1 class="app-title">CESIZen</h1>
       </div>
       <nav class="nav-menu" v-if="isAuthenticated">

@@ -65,7 +65,7 @@ router.beforeEach((to, from, next) => {
     next({ name: 'login', query: { redirect: to.fullPath } })
   } 
   // Rediriger vers la page d'accueil si la page est réservée aux visiteurs mais l'utilisateur est connecté
-  else if (isForGuest && authStore.isAuthenticated) {
+  else if (isForGuests && authStore.isAuthenticated) {
     next({ name: 'home' })
   } 
   // Rediriger vers la page d'accueil si la page est réservée aux administrateurs mais l'utilisateur n'est pas admin

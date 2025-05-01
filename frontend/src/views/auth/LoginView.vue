@@ -2,7 +2,7 @@
     <div class="login-container">
       <div class="login-form-card">
         <div class="logo-header">
-          <img src="@/assets/logo.png" alt="CESIZen Logo" class="logo" />
+          <img src="../../assets/logo.jpg" alt="CESIZen Logo" class="logo" />
           <h1>CESIZen</h1>
         </div>
         
