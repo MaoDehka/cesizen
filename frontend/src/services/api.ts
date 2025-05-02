@@ -75,11 +75,21 @@ interface ApiOptions {
     }
     
     async put<T>(endpoint: string, data?: any, headers?: Record<string, string>): Promise<T> {
-      return this.request<T>(endpoint, {
-        method: 'PUT',
-        body: data,
-        headers
-      });
+      try {
+        console.log('PUT request to:', `${BASE_URL}${endpoint}`, 'with data:', data);
+        
+        const response = await this.request<T>(endpoint, {
+          method: 'PUT',
+          body: data,
+          headers
+        });
+        
+        console.log('PUT response:', response);
+        return response;
+      } catch (error) {
+        console.error('Error in PUT request:', error);
+        throw error;
+      }
     }
     
     async delete<T>(endpoint: string, headers?: Record<string, string>): Promise<T> {

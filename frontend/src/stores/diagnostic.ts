@@ -1,17 +1,21 @@
 // src/stores/diagnostic.ts
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import type { Diagnostic } from '../types';
+import type { Diagnostic, StressLevel, Recommendation } from '../types';
 import api from '../services/api';
 
 interface DiagnosticResponse {
   diagnostic: Diagnostic;
+  stress_level_details?: StressLevel;
+  recommendations?: Recommendation[];
   message?: string;
 }
 
 export const useDiagnosticStore = defineStore('diagnostic', () => {
   const diagnostics = ref<Diagnostic[]>([]);
   const currentDiagnostic = ref<Diagnostic | null>(null);
+  const currentStressLevel = ref<StressLevel | null>(null);
+  const currentRecommendations = ref<Recommendation[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
@@ -37,7 +41,12 @@ export const useDiagnosticStore = defineStore('diagnostic', () => {
     error.value = null;
     
     try {
-      currentDiagnostic.value = await api.get<Diagnostic>(`/diagnostics/${id}`);
+      const response = await api.get<DiagnosticResponse>(`/diagnostics/${id}`);
+      
+      currentDiagnostic.value = response.diagnostic;
+      currentStressLevel.value = response.stress_level_details || null;
+      currentRecommendations.value = response.recommendations || [];
+      
       return currentDiagnostic.value;
     } catch (err: any) {
       error.value = err.message || `Une erreur est survenue lors du chargement du diagnostic ${id}`;
@@ -48,17 +57,22 @@ export const useDiagnosticStore = defineStore('diagnostic', () => {
     }
   };
 
-  const createDiagnostic = async (questions: number[]) => {
+  const createDiagnostic = async (questionnaireId: number, questions: number[]) => {
     loading.value = true;
     error.value = null;
     
     try {
-      const response = await api.post<DiagnosticResponse>('/diagnostics', { questions });
+      const response = await api.post<DiagnosticResponse>('/diagnostics', { 
+        questionnaire_id: questionnaireId,
+        questions 
+      });
       
       // Ajouter le nouveau diagnostic à la liste
       if (response.diagnostic) {
         diagnostics.value.unshift(response.diagnostic);
         currentDiagnostic.value = response.diagnostic;
+        currentStressLevel.value = response.stress_level_details || null;
+        currentRecommendations.value = response.recommendations || [];
       }
       
       return response;
@@ -80,6 +94,8 @@ export const useDiagnosticStore = defineStore('diagnostic', () => {
       // Mettre à jour le diagnostic courant si c'est celui qui est actuellement affiché
       if (currentDiagnostic.value && currentDiagnostic.value.id === id) {
         currentDiagnostic.value = response.diagnostic;
+        currentStressLevel.value = response.stress_level_details || null;
+        currentRecommendations.value = response.recommendations || [];
       }
       
       // Mettre à jour la liste des diagnostics
@@ -97,6 +113,34 @@ export const useDiagnosticStore = defineStore('diagnostic', () => {
     }
   };
 
+  const saveDiagnostic = async (id: number) => {
+    loading.value = true;
+    error.value = null;
+    
+    try {
+      console.log(`Tentative de sauvegarde du diagnostic ${id}`);
+      const response = await api.post<DiagnosticResponse>(`/diagnostics/${id}/save`);
+      
+      // Mettre à jour le diagnostic dans la liste locale
+      if (currentDiagnostic.value && currentDiagnostic.value.id === id) {
+        currentDiagnostic.value.saved = true;
+      }
+      
+      const index = diagnostics.value.findIndex(d => d.id === id);
+      if (index !== -1) {
+        diagnostics.value[index].saved = true;
+      }
+      
+      return response;
+    } catch (err: any) {
+      console.error('Erreur détaillée:', err);
+      error.value = `Une erreur est survenue lors de la sauvegarde du diagnostic ${id}`;
+      throw error.value;
+    } finally {
+      loading.value = false;
+    }
+  };
+  
   const deleteDiagnostic = async (id: number) => {
     loading.value = true;
     error.value = null;
@@ -110,6 +154,8 @@ export const useDiagnosticStore = defineStore('diagnostic', () => {
       // Réinitialiser le diagnostic courant si c'était celui-ci
       if (currentDiagnostic.value && currentDiagnostic.value.id === id) {
         currentDiagnostic.value = null;
+        currentStressLevel.value = null;
+        currentRecommendations.value = [];
       }
       
       return true;
@@ -124,12 +170,15 @@ export const useDiagnosticStore = defineStore('diagnostic', () => {
   return {
     diagnostics,
     currentDiagnostic,
+    currentStressLevel,
+    currentRecommendations,
     loading,
     error,
     fetchDiagnostics,
     fetchDiagnosticById,
     createDiagnostic,
     updateDiagnostic,
+    saveDiagnostic,  // Exposer la nouvelle méthode
     deleteDiagnostic
   };
 });

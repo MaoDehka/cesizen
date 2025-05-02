@@ -7,7 +7,8 @@
       </div>
       <nav class="nav-menu" v-if="isAuthenticated">
         <router-link to="/" class="nav-link">Accueil</router-link>
-        <router-link to="/diagnostics" class="nav-link">Diagnostics</router-link>
+        <router-link to="/questionnaires" class="nav-link">Diagnostics</router-link>
+        <router-link to="/history" class="nav-link">Historique</router-link>
         <a href="#" @click.prevent="logout" class="nav-link">Déconnexion</a>
         <router-link v-if="isAdmin" to="/admin" class="nav-link admin-link">Admin</router-link>
       </nav>
@@ -115,8 +116,7 @@ body {
   padding: 5px;
 }
 
-.nav-link:hover,
-.nav-link.router-link-active {
+.nav-link:hover, .nav-link.router-link-active {
   color: #4CAF50;
   border-bottom: 2px solid #4CAF50;
 }
@@ -166,6 +166,15 @@ body {
   text-align: center;
   padding: 10px;
   margin-top: auto;
+}
+
+/* Transition entre les pages */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 
 /* Mobile-first media queries */

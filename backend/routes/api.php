@@ -5,6 +5,7 @@ use App\Http\Controllers\API\DiagnosticController;
 use App\Http\Controllers\API\QuestionController;
 use App\Http\Controllers\API\QuestionnaireController;
 use App\Http\Controllers\API\UserController;
+use App\Http\Controllers\API\AdminController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -24,9 +25,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/questionnaires/{questionnaire}', [QuestionnaireController::class, 'show']);
     
     // Diagnostics (accessibles aux utilisateurs authentifiés)
-    Route::post('/diagnostics', [DiagnosticController::class, 'store']);
     Route::get('/diagnostics', [DiagnosticController::class, 'index']);
     Route::get('/diagnostics/{diagnostic}', [DiagnosticController::class, 'show']);
+    Route::post('/diagnostics', [DiagnosticController::class, 'store']);
+    Route::put('/diagnostics/{diagnostic}', [DiagnosticController::class, 'update']);
+    Route::delete('/diagnostics/{diagnostic}', [DiagnosticController::class, 'destroy']);
     
     // Routes réservées aux administrateurs
     Route::middleware('ability:admin')->group(function () {
@@ -40,8 +43,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Gestion des questions
         Route::apiResource('/questions', QuestionController::class);
         
-        // Gestion des diagnostics (sauf index, show et store)
-        Route::apiResource('/diagnostics', DiagnosticController::class)
-            ->except(['index', 'show', 'store']);
+        // Nouveaux endpoints d'administration
+        Route::get('/admin/diagnostics', [AdminController::class, 'getAllDiagnostics']);
+        Route::get('/admin/stress-levels', [AdminController::class, 'getAllStressLevels']);
+        Route::get('/admin/statistics', [AdminController::class, 'getStatistics']);
     });
 });

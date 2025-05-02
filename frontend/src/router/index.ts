@@ -23,23 +23,60 @@ const router = createRouter({
       component: () => import('../views/auth/RegisterView.vue'),
       meta: { title: 'Inscription - CESIZen', guest: true }
     },
+    // Liste des questionnaires
+    {
+      path: '/questionnaires',
+      name: 'questionnaire-list',
+      component: () => import('../views/questionnaire/QuestionnairelistView.vue'),
+      meta: { title: 'Questionnaires - CESIZen', requiresAuth: true }
+    },
+    // Questions du questionnaire
+    {
+      path: '/questionnaires/:id',
+      name: 'questionnaire-questions',
+      component: () => import('../views/questionnaire/QuestionnaireQuestionsView.vue'),
+      meta: { title: 'Questionnaire - CESIZen', requiresAuth: true }
+    },
+    // Ancienne route pour la vue questionnaire (conservée pour la compatibilité)
     {
       path: '/diagnostics',
       name: 'questionnaire',
       component: () => import('../views/questionnaire/QuestionnaireView.vue'),
       meta: { title: 'Questionnaire de stress - CESIZen', requiresAuth: true }
     },
+    // Route pour les résultats
     {
       path: '/diagnostics/:id',
       name: 'diagnostic-result',
       component: () => import('../views/questionnaire/DiagnosticResultView.vue'),
       meta: { title: 'Résultat du diagnostic - CESIZen', requiresAuth: true }
     },
+    // Route pour l'historique des diagnostics
+    {
+      path: '/history',
+      name: 'history',
+      component: () => import('../views/history/HistoryView.vue'),
+      meta: { title: 'Historique des diagnostics - CESIZen', requiresAuth: true }
+    },
+    // Administration
     {
       path: '/admin',
       name: 'admin',
       component: () => import('../views/admin/AdminDashboard.vue'),
       meta: { title: 'Administration - CESIZen', requiresAuth: true, requiresAdmin: true }
+    },
+    // Nouvelles routes admin
+    {
+      path: '/admin/questionnaires/:id/questions',
+      name: 'admin-questionnaire-questions',
+      component: () => import('../views/admin/QuestionnaireQuestionsView.vue'),
+      meta: { title: 'Gestion des questions - CESIZen', requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/admin/stress-levels/:id/recommendations',
+      name: 'admin-stress-level-recommendations',
+      component: () => import('../views/admin/StressLevelRecommendationsView.vue'),
+      meta: { title: 'Gestion des recommandations - CESIZen', requiresAuth: true, requiresAdmin: true }
     },
     {
       path: '/:pathMatch(.*)*',

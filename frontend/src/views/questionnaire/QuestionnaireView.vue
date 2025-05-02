@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
     <div class="questionnaire-container">
       <h1>Questionnaire de stress</h1>
       <p class="description">
@@ -197,4 +197,4 @@ h1 {
  background-color: #cccccc;
  cursor: not-allowed;
 }
-</style>
+</style> -->

@@ -20,7 +20,7 @@
       <div class="feature-card">
         <h3>Diagnostics de stress</h3>
         <p>Évaluez votre niveau de stress grâce à notre questionnaire basé sur l'échelle de Holmes et Rahe.</p>
-        <router-link to="/diagnostics" class="feature-link">Faire le test</router-link>
+        <router-link to="/questionnaires" class="feature-link">Faire le test</router-link>
       </div>
       
       <div class="feature-card">
