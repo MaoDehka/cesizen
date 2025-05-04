@@ -10,6 +10,7 @@ use App\Models\StressLevel;
 use App\Models\Questionnaire;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class DiagnosticController extends Controller
@@ -130,84 +131,84 @@ class DiagnosticController extends Controller
     }
 
     public function update(Request $request, $id)
-{
-    $validator = Validator::make($request->all(), [
-        'consequences' => 'nullable|string',
-        'advices' => 'nullable|string',
-        'saved' => 'nullable|boolean',
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json(['errors' => $validator->errors()], 422);
-    }
-
-    $diagnostic = Diagnostic::findOrFail($id);
-    
-    $diagnostic->update([
-        'consequences' => $request->consequences ?? $diagnostic->consequences,
-        'advices' => $request->advices ?? $diagnostic->advices,
-        'saved' => $request->has('saved') ? $request->saved : $diagnostic->saved,
-    ]);
-
-    return response()->json([
-        'message' => 'Diagnostic mis à jour avec succès',
-        'diagnostic' => $diagnostic
-    ]);
-}
-
-public function saveDiagnostic(Request $request, $id)
-{
-    try {
-        $diagnostic = Diagnostic::findOrFail($id);
-        
-        $diagnostic->saved = true;
-        $diagnostic->save();
-        
-        return response()->json([
-            'message' => 'Diagnostic sauvegardé avec succès',
-            'diagnostic' => $diagnostic
+    {
+        $validator = Validator::make($request->all(), [
+            'consequences' => 'nullable|string',
+            'advices' => 'nullable|string',
+            'saved' => 'nullable|boolean',
         ]);
-    } catch (\Exception $e) {
-        // Log détaillé de l'erreur
-        \Log::error('Erreur lors de la sauvegarde du diagnostic: ' . $e->getMessage());
-        
-        return response()->json([
-            'message' => 'Une erreur est survenue lors de la sauvegarde du diagnostic',
-            'error' => $e->getMessage()
-        ], 500);
-    }
-}
 
-// Dans DiagnosticController.php
-public function saveToHistory(Request $request, $id)
-{
-    try {
-        $diagnostic = Diagnostic::findOrFail($id);
-        
-        // Vérification des autorisations
-        if ($diagnostic->user_id !== $request->user()->id && $request->user()->role->name !== 'admin') {
-            return response()->json(['message' => 'Non autorisé'], 403);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
         }
+
+        $diagnostic = Diagnostic::findOrFail($id);
         
-        $diagnostic->saved = true;
-        $diagnostic->save();
-        
+        $diagnostic->update([
+            'consequences' => $request->consequences ?? $diagnostic->consequences,
+            'advices' => $request->advices ?? $diagnostic->advices,
+            'saved' => $request->has('saved') ? $request->saved : $diagnostic->saved,
+        ]);
+
         return response()->json([
-            'message' => 'Diagnostic sauvegardé avec succès',
+            'message' => 'Diagnostic mis à jour avec succès',
             'diagnostic' => $diagnostic
         ]);
-    } catch (\Exception $e) {
-        Log::error('Error saving diagnostic', [
-            'id' => $id,
-            'error' => $e->getMessage()
-        ]);
-        
-        return response()->json([
-            'message' => 'Une erreur est survenue lors de la sauvegarde du diagnostic',
-            'error' => $e->getMessage()
-        ], 500);
     }
-}
+
+    public function saveDiagnostic(Request $request, $id)
+    {
+        try {
+            $diagnostic = Diagnostic::findOrFail($id);
+            
+            $diagnostic->saved = true;
+            $diagnostic->save();
+            
+            return response()->json([
+                'message' => 'Diagnostic sauvegardé avec succès',
+                'diagnostic' => $diagnostic
+            ]);
+        } catch (\Exception $e) {
+            // Log détaillé de l'erreur
+            Log::error('Erreur lors de la sauvegarde du diagnostic: ' . $e->getMessage());
+            
+            return response()->json([
+                'message' => 'Une erreur est survenue lors de la sauvegarde du diagnostic',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Dans DiagnosticController.php
+    public function saveToHistory(Request $request, $id)
+    {
+        try {
+            $diagnostic = Diagnostic::findOrFail($id);
+            
+            // Vérification des autorisations
+            if ($diagnostic->user_id !== $request->user()->id && $request->user()->role->name !== 'admin') {
+                return response()->json(['message' => 'Non autorisé'], 403);
+            }
+            
+            $diagnostic->saved = true;
+            $diagnostic->save();
+            
+            return response()->json([
+                'message' => 'Diagnostic sauvegardé avec succès',
+                'diagnostic' => $diagnostic
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error saving diagnostic', [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'message' => 'Une erreur est survenue lors de la sauvegarde du diagnostic',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 
     public function destroy($id)
     {

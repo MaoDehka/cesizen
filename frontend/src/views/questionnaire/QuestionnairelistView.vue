@@ -18,7 +18,7 @@
             @click="selectQuestionnaire(questionnaire.id)"
           >
             <div class="card-body">
-              <h3>Questionnaire {{ questionnaire.id }}</h3>
+              <h3>Questionnaire {{ questionnaire.id }} - {{ questionnaire.title }}</h3>
               <p>{{ questionnaire.description || 'Pas de description disponible.' }}</p>
             </div>
             <div class="badge">

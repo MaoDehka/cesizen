@@ -58,7 +58,6 @@ export interface Diagnostic {
   questionnaire?: Questionnaire;
 }
 
-// Nouveaux types
 export interface StressLevel {
   id: number;
   name: string;
@@ -70,6 +69,7 @@ export interface StressLevel {
   active: boolean;
   created_at?: string;
   updated_at?: string;
+  recommendations?: Recommendation[]; 
 }
 
 export interface Recommendation {

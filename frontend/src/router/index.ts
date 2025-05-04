@@ -83,6 +83,12 @@ const router = createRouter({
       name: 'not-found',
       component: () => import('../views/NotFoundView.vue'),
       meta: { title: 'Page non trouvée - CESIZen' }
+    },
+    {
+      path: '/admin/contents',
+      name: 'admin-contents',
+      component: () => import('../views/admin/ContentManagementView.vue'),
+      meta: { title: 'Gestion des contenus - CESIZen', requiresAuth: true, requiresAdmin: true }
     }
   ]
 })

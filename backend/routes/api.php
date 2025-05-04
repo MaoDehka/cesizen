@@ -6,7 +6,8 @@ use App\Http\Controllers\API\QuestionController;
 use App\Http\Controllers\API\QuestionnaireController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\AdminController;
-use Illuminate\Http\Request;
+use App\Http\Controllers\API\RecommendationController;
+use App\Http\Controllers\API\StressLevelController;
 use Illuminate\Support\Facades\Route;
 
 // Routes publiques
@@ -29,23 +30,49 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/diagnostics/{diagnostic}', [DiagnosticController::class, 'show']);
     Route::post('/diagnostics', [DiagnosticController::class, 'store']);
     Route::put('/diagnostics/{diagnostic}', [DiagnosticController::class, 'update']);
+    Route::post('/diagnostics/{diagnostic}/save', [DiagnosticController::class, 'saveToHistory']);
     Route::delete('/diagnostics/{diagnostic}', [DiagnosticController::class, 'destroy']);
     
-    // Routes réservées aux administrateurs
-    Route::middleware('ability:admin')->group(function () {
-        // Gestion des utilisateurs
-        Route::apiResource('/users', UserController::class);
+    // Administration
+    Route::prefix('admin')->group(function () {
+        // Statistiques et données globales
+        Route::get('/diagnostics', [AdminController::class, 'getAllDiagnostics']);
+        Route::get('/statistics', [AdminController::class, 'getStatistics']);
+        Route::get('/stress-levels', [AdminController::class, 'getAllStressLevels']);
         
-        // Gestion des questionnaires (sauf index et show)
-        Route::apiResource('/questionnaires', QuestionnaireController::class)
-            ->except(['index', 'show']);
+        // Gestion des niveaux de stress
+        Route::get('/stress-levels/{id}', [StressLevelController::class, 'show']);
+        Route::post('/stress-levels', [StressLevelController::class, 'store']);
+        Route::put('/stress-levels/{id}', [StressLevelController::class, 'update']);
+        Route::delete('/stress-levels/{id}', [StressLevelController::class, 'destroy']);
         
-        // Gestion des questions
-        Route::apiResource('/questions', QuestionController::class);
-        
-        // Nouveaux endpoints d'administration
-        Route::get('/admin/diagnostics', [AdminController::class, 'getAllDiagnostics']);
-        Route::get('/admin/stress-levels', [AdminController::class, 'getAllStressLevels']);
-        Route::get('/admin/statistics', [AdminController::class, 'getStatistics']);
+        // Gestion des recommandations
+        Route::get('/stress-levels/{id}/recommendations', [RecommendationController::class, 'indexByStressLevel']);
+        Route::post('/recommendations', [RecommendationController::class, 'store']);
+        Route::put('/recommendations/{id}', [RecommendationController::class, 'update']);
+        Route::delete('/recommendations/{id}', [RecommendationController::class, 'destroy']);
     });
+    
+    // Gestion des utilisateurs
+    Route::apiResource('/users', UserController::class);
+    
+    // Gestion des questionnaires (sauf index et show)
+    Route::apiResource('/questionnaires', QuestionnaireController::class)
+        ->except(['index', 'show']);
+    
+    // Gestion des questions
+    Route::apiResource('/questions', QuestionController::class);
+
+    // Dans routes/api.php, ajoutez ces routes
+
+// Route publique pour récupérer un contenu par identifiant de page
+Route::get('/contents/{page}', [ContentController::class, 'getByPage']);
+
+// Routes protégées par authentification pour l'administration des contenus
+Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
+    // Gestion des contenus (pour admin)
+    Route::get('/contents', [ContentController::class, 'index']);
+    Route::get('/contents/{id}', [ContentController::class, 'show']);
+    Route::put('/contents/{id}', [ContentController::class, 'update']);
+});
 });

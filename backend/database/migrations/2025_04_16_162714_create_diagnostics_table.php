@@ -19,6 +19,7 @@ return new class extends Migration
             $table->dateTime('diagnostic_date');
             $table->text('consequences')->nullable();
             $table->text('advices')->nullable();
+            $table->boolean('saved')->default(false);
             $table->timestamps();
         });
     }
