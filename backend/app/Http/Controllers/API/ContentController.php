@@ -29,22 +29,22 @@ class ContentController extends Controller
         }
     }
 
-    /**
-     * Récupérer un contenu spécifique par identifiant de page
-     */
-    public function getByPage($page)
-    {
-        try {
-            $content = Content::where('page', $page)
-                ->where('active', true)
-                ->firstOrFail();
-                
-            return response()->json($content);
-        } catch (\Exception $e) {
-            Log::error('Erreur lors du chargement du contenu', ['page' => $page, 'error' => $e->getMessage()]);
-            return response()->json(['message' => 'Contenu non trouvé', 'error' => $e->getMessage()], 404);
-        }
+/**
+ * Récupérer un contenu spécifique par identifiant de page (public)
+ */
+public function getByPage($page)
+{
+    try {
+        $content = Content::where('page', $page)
+            ->where('active', true)
+            ->firstOrFail();
+            
+        return response()->json($content);
+    } catch (\Exception $e) {
+        Log::error('Erreur lors du chargement du contenu', ['page' => $page, 'error' => $e->getMessage()]);
+        return response()->json(['message' => 'Contenu non trouvé', 'error' => $e->getMessage()], 404);
     }
+}
 
     /**
      * Récupérer un contenu spécifique par ID (pour l'admin)

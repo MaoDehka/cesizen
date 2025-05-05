@@ -8,6 +8,7 @@ use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\AdminController;
 use App\Http\Controllers\API\RecommendationController;
 use App\Http\Controllers\API\StressLevelController;
+use App\Http\Controllers\API\ContentController;
 use Illuminate\Support\Facades\Route;
 
 // Routes publiques
@@ -63,16 +64,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Gestion des questions
     Route::apiResource('/questions', QuestionController::class);
 
-    // Dans routes/api.php, ajoutez ces routes
-
-// Route publique pour récupérer un contenu par identifiant de page
+// Routes pour les contenus accessibles à tous
 Route::get('/contents/{page}', [ContentController::class, 'getByPage']);
 
-// Routes protégées par authentification pour l'administration des contenus
-Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
-    // Gestion des contenus (pour admin)
-    Route::get('/contents', [ContentController::class, 'index']);
-    Route::get('/contents/{id}', [ContentController::class, 'show']);
-    Route::put('/contents/{id}', [ContentController::class, 'update']);
+// Routes pour l'administration des contenus (protégées par auth:sanctum)
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/admin/contents', [ContentController::class, 'index']);
+    Route::get('/admin/contents/{id}', [ContentController::class, 'show']);
+    Route::put('/admin/contents/{id}', [ContentController::class, 'update']);
 });
 });

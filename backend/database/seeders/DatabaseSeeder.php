@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             QuestionnaireSeeder::class,
             StressLevelsSeeder::class,
+            ContentSeeder::class,
         ]);
     }
 }

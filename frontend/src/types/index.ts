@@ -58,6 +58,16 @@ export interface Diagnostic {
   questionnaire?: Questionnaire;
 }
 
+export interface Content {
+  id: number;
+  page: string;
+  title: string;
+  content: string;
+  active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface StressLevel {
   id: number;
   name: string;

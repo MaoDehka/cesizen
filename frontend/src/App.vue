@@ -5,13 +5,58 @@
         <img src="./assets/logo.jpg" alt="CESIZen" class="logo" />
         <h1 class="app-title">CESIZen</h1>
       </div>
-      <nav class="nav-menu" v-if="isAuthenticated">
-        <router-link to="/" class="nav-link">Accueil</router-link>
-        <router-link to="/questionnaires" class="nav-link">Diagnostics</router-link>
-        <router-link to="/history" class="nav-link">Historique</router-link>
-        <a href="#" @click.prevent="logout" class="nav-link">Déconnexion</a>
-        <router-link v-if="isAdmin" to="/admin" class="nav-link admin-link">Admin</router-link>
+      
+      <!-- Menu pour utilisateurs connectés -->
+      <nav v-if="isAuthenticated" class="nav-menu">
+        <!-- Menu statique par défaut -->
+        <template v-if="!parsedMenu">
+          <router-link to="/" class="nav-link">Accueil</router-link>
+          <router-link to="/questionnaires" class="nav-link">Diagnostics</router-link>
+          <router-link to="/history" class="nav-link">Historique</router-link>
+          <a href="#" @click.prevent="logout" class="nav-link">Déconnexion</a>
+          <router-link v-if="isAdmin" to="/admin" class="nav-link admin-link">Admin</router-link>
+        </template>
+        
+        <!-- Menu dynamique -->
+        <template v-else>
+          <template v-for="(item, index) in parsedMenu" :key="index">
+            <!-- N'afficher les liens admin que pour les admin -->
+            <template v-if="!item.adminOnly || (item.adminOnly && isAdmin)">
+              <!-- Liens de routage -->
+              <router-link 
+                v-if="item.type === 'router-link'" 
+                :to="item.route" 
+                class="nav-link"
+                :class="{ 'admin-link': item.adminOnly }"
+              >
+                {{ item.text }}
+              </router-link>
+              
+              <!-- Lien de déconnexion -->
+              <a 
+                v-else-if="item.type === 'logout'" 
+                href="#" 
+                @click.prevent="logout" 
+                class="nav-link"
+              >
+                {{ item.text }}
+              </a>
+              
+              <!-- Autres types de liens -->
+              <a 
+                v-else 
+                :href="item.route" 
+                class="nav-link" 
+                target="_blank"
+              >
+                {{ item.text }}
+              </a>
+            </template>
+          </template>
+        </template>
       </nav>
+      
+      <!-- Boutons d'authentification pour utilisateurs non connectés -->
       <div class="auth-buttons" v-else>
         <router-link to="/login" class="btn btn-login">Connexion</router-link>
         <router-link to="/register" class="btn btn-register">Inscription</router-link>
@@ -23,35 +68,131 @@
     </main>
     
     <footer class="app-footer">
-      <p>&copy; {{ currentYear }} CESIZen - L'application de votre santé mentale</p>
+      <div v-if="footerContent" v-html="footerContent.content.replace('{year}', currentYear.toString())"></div>
+      <p v-else>&copy; {{ currentYear }} CESIZen - L'application de votre santé mentale</p>
     </footer>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, computed } from 'vue';
+import { defineComponent, computed, ref, onMounted, watch, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth';
+import { useContentStore } from './stores/content';
+import type { Content } from './types';
+
+interface MenuItem {
+  text: string;
+  route: string;
+  type: 'router-link' | 'logout' | 'external';
+  adminOnly?: boolean;
+}
 
 export default defineComponent({
   name: 'App',
   setup() {
     const authStore = useAuthStore();
+    const contentStore = useContentStore();
     const router = useRouter();
+    
+    const menuContent = ref<Content | null>(null);
+    const footerContent = ref<Content | null>(null);
+    const parsedMenu = ref<MenuItem[] | null>(null);
     
     const isAuthenticated = computed(() => authStore.isAuthenticated);
     const isAdmin = computed(() => authStore.isAdmin);
     const currentYear = new Date().getFullYear();
+    
+    const fetchContents = async () => {
+      try {
+        // Charger le contenu du menu
+        menuContent.value = await contentStore.fetchContentByPage('menu');
+        
+        if (menuContent.value) {
+          try {
+            // Essayer de parser le contenu comme JSON
+            parsedMenu.value = JSON.parse(menuContent.value.content);
+          } catch (e) {
+            console.error('Erreur lors du parsing du menu:', e);
+            // Si échec du parsing, conserver le menu par défaut
+            parsedMenu.value = null;
+          }
+        }
+        
+        // Charger le contenu du pied de page
+        footerContent.value = await contentStore.fetchContentByPage('footer');
+      } catch (err) {
+        console.error('Erreur lors du chargement des contenus:', err);
+      }
+    };
     
     const logout = async () => {
       await authStore.logout();
       router.push('/login');
     };
     
+    // Configurer l'écouteur pour les mises à jour de contenu
+    const setupContentUpdateListener = () => {
+      if (!contentStore.onContentUpdated) return;
+      
+      const removeListener = contentStore.onContentUpdated((event: CustomEvent) => {
+        const { page } = event.detail;
+        
+        if (page === 'menu') {
+          contentStore.fetchContentByPage('menu')
+            .then(content => {
+              if (content) {
+                menuContent.value = content;
+                try {
+                  parsedMenu.value = JSON.parse(content.content);
+                } catch (e) {
+                  console.error('Erreur lors du parsing du menu mis à jour:', e);
+                  parsedMenu.value = null;
+                }
+              }
+            });
+        } else if (page === 'footer') {
+          contentStore.fetchContentByPage('footer')
+            .then(content => {
+              if (content) {
+                footerContent.value = content;
+              }
+            });
+        }
+      });
+      
+      onUnmounted(() => {
+        if (removeListener) removeListener();
+      });
+    };
+    
+    // Charger les contenus au montage et configurer l'écouteur
+    onMounted(() => {
+      if (isAuthenticated.value) {
+        fetchContents();
+      }
+      
+      setupContentUpdateListener();
+    });
+    
+    // Observer les changements d'authentification
+    watch(isAuthenticated, (newValue) => {
+      if (newValue === true) {
+        fetchContents();
+      } else {
+        menuContent.value = null;
+        footerContent.value = null;
+        parsedMenu.value = null;
+      }
+    });
+    
     return {
       isAuthenticated,
       isAdmin,
       currentYear,
+      menuContent,
+      footerContent,
+      parsedMenu,
       logout
     };
   }

@@ -38,6 +38,13 @@
       >
         Statistiques
       </button>
+      <button 
+  class="tab-button" 
+  :class="{ active: activeTab === 'contents' }" 
+  @click="activeTab = 'contents'; fetchContents()"
+>
+  Contenus
+</button>
     </div>
     
     <div class="tab-content">
@@ -287,7 +294,59 @@
           </table>
         </div>
       </div>
+      <div v-if="activeTab === 'contents'" class="contents-tab">
 
+      <!-- Onglet Content -->
+      <h2>Gestion des contenus</h2>
+  
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Page</th>
+          <th>Titre</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-if="loading">
+          <td colspan="5" class="text-center loading-cell">
+            <div class="loading-spinner">
+              <div class="spinner"></div>
+              <p>Chargement des contenus...</p>
+            </div>
+          </td>
+        </tr>
+        <tr v-else-if="contents.length === 0">
+          <td colspan="5" class="text-center">Aucun contenu trouvé</td>
+        </tr>
+        <tr v-for="content in contents" :key="content.id">
+          <td>{{ content.id }}</td>
+          <td>{{ content.page }}</td>
+          <td>{{ content.title }}</td>
+          <td>
+            <span 
+              class="status-badge" 
+              :class="{ active: content.active, inactive: !content.active }"
+            >
+              {{ content.active ? 'Actif' : 'Inactif' }}
+            </span>
+          </td>
+          <td class="actions">
+            <button @click="editContent(content)" class="btn-edit" title="Modifier">
+              <i class="fas fa-edit"></i> Modifier
+            </button>
+            <button @click="previewContent(content)" class="btn-view" title="Aperçu">
+              <i class="fas fa-eye"></i> Aperçu
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
       <!-- Onglet Statistiques -->
       <div v-if="activeTab === 'statistics'" class="statistics-tab">
         <h2>Statistiques générales</h2>
@@ -575,6 +634,49 @@
         </div>
       </div>
     </div>
+
+   <!-- Modal pour éditer un contenu -->
+<div v-if="showContentModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Modifier le contenu</h2>
+      <button @click="closeContentModal" class="close-btn">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form @submit.prevent="saveContent">
+        <div class="form-group">
+          <label for="content_title">Titre</label>
+          <input 
+            type="text" 
+            id="content_title" 
+            v-model="contentForm.title" 
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="content_html">Contenu HTML</label>
+          <textarea 
+            id="content_html" 
+            v-model="contentForm.content" 
+            rows="15"
+            class="html-editor"
+            required
+          ></textarea>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="contentForm.active">
+            Actif
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="button" @click="closeContentModal" class="btn-secondary">Annuler</button>
+          <button type="submit" class="btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
   </div>
 </template>
 
@@ -583,6 +685,8 @@ import { defineComponent, ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '../../services/api';
 import type { User, Questionnaire, Diagnostic, StressLevel, Role } from '../../types';
+import { useContentStore } from '../../stores/content';
+import type { Content } from '../../types';
 
 export default defineComponent({
   name: 'AdminDashboard',
@@ -591,7 +695,126 @@ export default defineComponent({
     const activeTab = ref('users');
     const loading = ref(false);
     const error = ref<string | null>(null);
+
+    const contentStore = useContentStore();
+const contents = ref<Content[]>([]);
+  const showContentModal = ref(false);
+const contentForm = ref({
+  title: '',
+  content: '',
+  active: true
+});
+
+const fetchContents = async () => {
+  loading.value = true;
+  error.value = null;
+  
+  try {
+    contents.value = await contentStore.fetchContents();
+  } catch (err: any) {
+    error.value = err.message || 'Une erreur est survenue lors du chargement des contenus';
+    console.error('Erreur lors du chargement des contenus:', err);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Fonction pour ouvrir le modal d'édition
+const editContent = (content: any) => {
+  console.log('Édition du contenu :', content);
+  currentItemToDelete.value = content;
+  contentForm.value = {
+    title: content.title,
+    content: content.content,
+    active: content.active
+  };
+  showContentModal.value = true;
+};
+
+
+const contentCategories = ref([
+  { id: 'pages', name: 'Pages' },
+  { id: 'app', name: 'Application' }
+]);
+const currentCategory = ref('pages');
+
+// Filtrer les contenus par catégorie
+const filteredContents = computed(() => {
+  if (currentCategory.value === 'pages') {
+    return contents.value.filter(c => 
+      !c.page.startsWith('app_') && c.page !== 'home_content');
+  } else if (currentCategory.value === 'app') {
+    return contents.value.filter(c => 
+      c.page.startsWith('app_') || c.page === 'home_content');
+  }
+  return contents.value;
+});
+
+// Fonction pour adapter la taille de l'éditeur
+const getEditorRows = () => {
+  if (!currentItemToDelete.value) return 15;
+  
+  // Contenu d'application : éditeurs plus petits
+  if (currentItemToDelete.value.page.startsWith('app_')) {
+    return 10;
+  }
+  
+  // Contenu de page : éditeurs plus grands
+  return 20;
+};
+
+// Fonction pour avoir un aperçu du contenu
+const previewContent = (content: Content) => {
+  // Ouvrir une nouvelle fenêtre/onglet avec le contenu
+  const previewWindow = window.open('', '_blank');
+  if (previewWindow) {
+    previewWindow.document.write(`
+      <html>
+        <head>
+          <title>Aperçu: ${content.title}</title>
+          <style>
+            body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+            h1 { color: #333; }
+          </style>
+        </head>
+        <body>
+          <h1>${content.title}</h1>
+          ${content.content}
+        </body>
+      </html>
+    `);
+    previewWindow.document.close();
+  }
+};
+
+// Ajouter l'état pour fermer le modal de contenu
+const closeContentModal = () => {
+  showContentModal.value = false;
+  currentItemToDelete.value = null;
+};
+
+// Fonction pour sauvegarder les modifications
+const saveContent = async () => {
+  if (!currentItemToDelete.value) return;
+  
+  try {
+    await contentStore.updateContent(currentItemToDelete.value.id, {
+      title: contentForm.value.title,
+      content: contentForm.value.content,
+      active: contentForm.value.active
+    });
     
+    // Rafraîchir la liste des contenus
+    fetchContents();
+    
+    // Fermer le modal
+    closeContentModal();
+    
+  } catch (err: any) {
+    console.error('Erreur lors de la mise à jour du contenu :', err);
+  }
+};
+
     // États
     const users = ref<User[]>([]);
     const questionnaires = ref<Questionnaire[]>([]);
@@ -1173,12 +1396,104 @@ export default defineComponent({
       // Actions de sauvegarde
       saveUser,
       saveQuestionnaire,
-      saveStressLevel
+      saveStressLevel,
+
+      contents,
+      editContent,
+  showContentModal,
+  contentForm,
+  currentItemToDelete,
+  fetchContents,
+  previewContent,
+  closeContentModal,
+  saveContent,
+
+  contentCategories,
+  currentCategory,
+  filteredContents,
+  getEditorRows
     };
   }
 });
 </script>
 <style scoped>
+
+.content-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.category-btn {
+  padding: 8px 16px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.category-btn.active {
+  background-color: #4CAF50;
+  color: white;
+  border-color: #4CAF50;
+}
+
+.alert {
+  padding: 12px 15px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.alert-info {
+  background-color: #e3f2fd;
+  border-left: 4px solid #2196F3;
+  color: #0d47a1;
+}
+
+.alert p {
+  margin: 5px 0;
+}
+
+.alert code {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.large-modal {
+  max-width: 90%;
+  height: 90vh;
+}
+
+.html-editor {
+  font-family: monospace;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+  font-size: 14px;
+}
+
+.preview-section {
+  margin-top: 20px;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.preview-container {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  margin-top: 10px;
+  overflow: auto;
+  max-height: 300px;
+}
+
 .admin-dashboard {
   max-width: 1200px;
   margin: 0 auto;
@@ -1242,6 +1557,15 @@ h2 {
 
 .btn-add:hover {
   background-color: #388E3C;
+}
+
+.html-editor {
+  font-family: monospace;
+  width: 100%;
+  height: 300px;
+  padding: 10px;
+  font-size: 14px;
+  white-space: pre-wrap;
 }
 
 .table-responsive {
@@ -1538,13 +1862,12 @@ h2 {
   font-weight: 500;
 }
 
-/* Modal styles */
 .modal {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
@@ -1555,8 +1878,8 @@ h2 {
 .modal-content {
   background-color: white;
   border-radius: 8px;
-  width: 90%;
-  max-width: 600px;
+  width: 80%;
+  max-width: 800px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -1567,11 +1890,15 @@ h2 {
 }
 
 .modal-header {
-  padding: 15px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 15px 20px;
   border-bottom: 1px solid #eee;
+}
+
+.modal-body {
+  padding: 20px;
 }
 
 .modal-header h2 {
@@ -1583,13 +1910,9 @@ h2 {
 .close-btn {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 1.5rem;
   cursor: pointer;
-  color: #999;
-}
-
-.modal-body {
-  padding: 20px;
+  color: #777;
 }
 
 .form-group {
