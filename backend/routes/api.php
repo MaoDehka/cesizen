@@ -54,6 +54,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/recommendations/{id}', [RecommendationController::class, 'destroy']);
     });
     
+    // Routes pour la réinitialisation du mot de passe
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
+Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
+
     // Gestion des utilisateurs
     Route::apiResource('/users', UserController::class);
     

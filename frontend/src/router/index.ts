@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import { useAuthStore } from '../stores/auth'
+import ForgotPasswordView from '../views/ForgotPasswordView.vue';
+import ResetPasswordView from '../views/ResetPasswordView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -89,6 +91,18 @@ const router = createRouter({
       name: 'admin-contents',
       component: () => import('../views/admin/ContentManagementView.vue'),
       meta: { title: 'Gestion des contenus - CESIZen', requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/forgot-password',
+      name: 'ForgotPassword',
+      component: ForgotPasswordView,
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/reset-password',
+      name: 'ResetPassword',
+      component: ResetPasswordView,
+      meta: { requiresAuth: false }
     }
   ]
 })

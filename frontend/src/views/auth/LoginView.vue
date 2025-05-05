@@ -38,7 +38,12 @@
           <div v-if="error" class="error-message">{{ error }}</div>
   
           <div class="form-footer">
-            <p>Mot de passe oublié ?</p>
+            <!-- Ajoutez ceci dans votre formulaire de connexion -->
+<div class="form-group">
+  <div class="forgot-password">
+    <router-link to="/forgot-password">Mot de passe oublié ?</router-link>
+  </div>
+</div>
             <router-link to="/register" class="register-link">Créer un compte</router-link>
           </div>
         </form>
