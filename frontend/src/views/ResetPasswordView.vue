@@ -80,14 +80,15 @@
       const errors = ref<Record<string, string>>({});
       
       onMounted(() => {
-        // Récupérer le token et l'email depuis l'URL
-        token.value = route.query.token as string || '';
-        email.value = route.query.email as string || '';
-        
-        if (!token.value) {
-          message.value = 'Token de réinitialisation invalide.';
-        }
-      });
+  // Récupérer le token et l'email depuis l'URL
+  token.value = route.query.token as string || '';
+  
+  console.log('Token récupéré:', token.value); // Pour vérifier le token
+  
+  if (!token.value) {
+    message.value = 'Token de réinitialisation invalide.';
+  }
+});
       
       const resetPassword = async () => {
         if (!token.value) {
@@ -99,7 +100,14 @@
         errors.value = {};
         
         try {
-            const response = await api.post<PasswordResetResponse>('/reset-password', {
+            console.log('Envoi des données de réinitialisation:', {
+      token: token.value,
+      email: email.value,
+      password: password.value,
+      password_confirmation: passwordConfirmation.value
+    });
+    
+            const response = await api.post<PasswordResetResponse>('/reset-password-token', {
           token: token.value,
           email: email.value,
           password: password.value,

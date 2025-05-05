@@ -1,6 +1,5 @@
 <?php
-// app/Http/Controllers/Auth/ForgotPasswordController.php
-namespace App\Http\Controllers\Auth;
+namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -10,19 +9,38 @@ class ForgotPasswordController extends Controller
 {
     public function sendResetLinkEmail(Request $request)
     {
-        // Ajouter des logs pour déboguer
-        \Log::info('Tentative de réinitialisation de mot de passe pour: ' . $request->email);
+        // Detailed logging
+        \Log::info('Attempting password reset for: ' . $request->email);
         
-        $request->validate(['email' => 'required|email']);
-
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
-
-        \Log::info('Résultat de l\'envoi: ' . $status);
-
-        return $status === Password::RESET_LINK_SENT
-                    ? response()->json(['message' => 'Le lien de réinitialisation a été envoyé à votre adresse email'], 200)
-                    : response()->json(['message' => 'Impossible d\'envoyer l\'email de réinitialisation. Vérifiez votre adresse email.'], 400);
+        try {
+            $request->validate(['email' => 'required|email']);
+            
+            // Check if the user exists
+            $user = \App\Models\User::where('email', $request->email)->first();
+            if (!$user) {
+                \Log::info('User not found: ' . $request->email);
+                return response()->json(['message' => 'Si votre email existe dans notre système, vous recevrez un lien de réinitialisation de mot de passe.'], 200);
+            }
+            
+            // Send the password reset link
+            $status = Password::sendResetLink(
+                $request->only('email')
+            );
+            
+            \Log::info('Reset link status for ' . $request->email . ': ' . $status);
+            
+            return response()->json([
+                'message' => 'Si votre email existe dans notre système, vous recevrez un lien de réinitialisation de mot de passe.',
+                'status' => $status
+            ], 200);
+        } catch (\Exception $e) {
+            \Log::error('Error in password reset process: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'message' => 'Une erreur est survenue lors de l\'envoi du lien de réinitialisation.',
+                'debug_message' => $e->getMessage()
+            ], 500);
+        }
     }
 }

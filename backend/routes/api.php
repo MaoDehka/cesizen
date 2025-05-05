@@ -9,11 +9,16 @@ use App\Http\Controllers\API\AdminController;
 use App\Http\Controllers\API\RecommendationController;
 use App\Http\Controllers\API\StressLevelController;
 use App\Http\Controllers\API\ContentController;
+use App\Http\Controllers\API\ForgotPasswordController;
+use App\Http\Controllers\API\ResetPasswordController;
 use Illuminate\Support\Facades\Route;
 
 // Routes publiques
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+Route::post('/forgot-password', [App\Http\Controllers\API\ForgotPasswordController::class, 'sendResetLinkEmail']);
+Route::post('/reset-password-token', [App\Http\Controllers\API\ResetPasswordController::class, 'reset']);
 
 // Routes protégées par authentification
 Route::middleware('auth:sanctum')->group(function () {
@@ -53,10 +58,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/recommendations/{id}', [RecommendationController::class, 'update']);
         Route::delete('/recommendations/{id}', [RecommendationController::class, 'destroy']);
     });
-    
-    // Routes pour la réinitialisation du mot de passe
-Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
-Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
 
     // Gestion des utilisateurs
     Route::apiResource('/users', UserController::class);
