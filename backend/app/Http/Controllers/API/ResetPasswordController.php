@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 
 class ResetPasswordController extends Controller
 {
@@ -17,7 +18,21 @@ class ResetPasswordController extends Controller
         
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
-            'password' => 'required|min:8|confirmed',
+            'password' => [
+                'required',
+                'confirmed',
+                Password::min(12)
+                    ->mixedCase()
+                    ->letters()
+                    ->numbers()
+                    ->symbols()
+            ],
+        ], [
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères',
+            'password.mixed_case' => 'Le mot de passe doit contenir au moins une lettre majuscule et une lettre minuscule',
+            'password.letters' => 'Le mot de passe doit contenir au moins une lettre',
+            'password.numbers' => 'Le mot de passe doit contenir au moins un chiffre',
+            'password.symbols' => 'Le mot de passe doit contenir au moins un caractère spécial',
         ]);
 
         if ($validator->fails()) {

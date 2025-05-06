@@ -1,4 +1,3 @@
-<!-- src/views/ResetPasswordView.vue -->
 <template>
     <div class="reset-password-container">
       <h1>Réinitialisation du mot de passe</h1>
@@ -30,8 +29,20 @@
             v-model="password" 
             required 
             placeholder="Entrez votre nouveau mot de passe"
+            @input="validatePasswordInput"
           />
           <div v-if="errors.password" class="error-message">{{ errors.password }}</div>
+          
+          <div class="password-requirements" :class="{ 'requirements-visible': showPasswordRequirements }">
+            <h4>Votre mot de passe doit contenir :</h4>
+            <ul>
+              <li :class="{ valid: passwordValidation.minLength }">Au moins 12 caractères</li>
+              <li :class="{ valid: passwordValidation.hasUppercase }">Au moins une lettre majuscule</li>
+              <li :class="{ valid: passwordValidation.hasLowercase }">Au moins une lettre minuscule</li>
+              <li :class="{ valid: passwordValidation.hasDigit }">Au moins un chiffre</li>
+              <li :class="{ valid: passwordValidation.hasSpecialChar }">Au moins un caractère spécial (!@#$%^&*(),.?":{}|<>)</li>
+            </ul>
+          </div>
         </div>
         
         <div class="form-group">
@@ -43,20 +54,29 @@
             required 
             placeholder="Confirmez votre nouveau mot de passe"
           />
+          <div v-if="passwordsDoNotMatch" class="error-message">
+            Les mots de passe ne correspondent pas
+          </div>
         </div>
         
         <div class="form-actions">
-          <button type="submit" class="btn-primary" :disabled="loading">
+          <button type="submit" class="btn-primary" :disabled="loading || !isFormValid">
             {{ loading ? 'Réinitialisation en cours...' : 'Réinitialiser le mot de passe' }}
           </button>
           <router-link to="/login" class="btn-link">Retour à la connexion</router-link>
         </div>
       </form>
+
+      <div v-if="success" class="success-message">
+        <p>Votre mot de passe a été réinitialisé avec succès.</p>
+        <p>Vous allez être redirigé vers la page de connexion dans quelques secondes...</p>
+        <router-link to="/login" class="btn-link">Aller à la connexion</router-link>
+      </div>
     </div>
   </template>
   
   <script lang="ts">
-  import { defineComponent, ref, onMounted } from 'vue';
+  import { defineComponent, ref, computed, onMounted, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import api from '../services/api';
   
@@ -78,17 +98,70 @@
       const success = ref(false);
       const message = ref('');
       const errors = ref<Record<string, string>>({});
+      const showPasswordRequirements = ref(false);
+      
+      // Validation du mot de passe
+      const passwordValidation = ref({
+        minLength: false,
+        hasUppercase: false,
+        hasLowercase: false,
+        hasDigit: false,
+        hasSpecialChar: false
+      });
+      
+      const validatePasswordInput = () => {
+        // Afficher les exigences de mot de passe dès que l'utilisateur commence à taper
+        showPasswordRequirements.value = true;
+        
+        const pwd = password.value;
+        
+        // Valider chaque critère individuellement
+        passwordValidation.value.minLength = pwd.length >= 8;
+        passwordValidation.value.hasUppercase = /[A-Z]/.test(pwd);
+        passwordValidation.value.hasLowercase = /[a-z]/.test(pwd);
+        passwordValidation.value.hasDigit = /\d/.test(pwd);
+        passwordValidation.value.hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(pwd);
+      };
+      
+      // Vérifier si le mot de passe est valide
+      const isPasswordValid = computed(() => {
+        return (
+          passwordValidation.value.minLength &&
+          passwordValidation.value.hasUppercase &&
+          passwordValidation.value.hasLowercase &&
+          passwordValidation.value.hasDigit &&
+          passwordValidation.value.hasSpecialChar
+        );
+      });
+      
+      // Vérifier si les mots de passe correspondent
+      const passwordsDoNotMatch = computed(() => {
+        return (
+          password.value !== '' &&
+          passwordConfirmation.value !== '' &&
+          password.value !== passwordConfirmation.value
+        );
+      });
+      
+      // Vérifier si le formulaire est valide dans son ensemble
+      const isFormValid = computed(() => {
+        return (
+          email.value !== '' &&
+          isPasswordValid.value &&
+          !passwordsDoNotMatch.value
+        );
+      });
       
       onMounted(() => {
-  // Récupérer le token et l'email depuis l'URL
-  token.value = route.query.token as string || '';
-  
-  console.log('Token récupéré:', token.value); // Pour vérifier le token
-  
-  if (!token.value) {
-    message.value = 'Token de réinitialisation invalide.';
-  }
-});
+        // Récupérer le token et l'email depuis l'URL
+        token.value = route.query.token as string || '';
+        
+        console.log('Token récupéré:', token.value); // Pour vérifier le token
+        
+        if (!token.value) {
+          message.value = 'Token de réinitialisation invalide.';
+        }
+      });
       
       const resetPassword = async () => {
         if (!token.value) {
@@ -96,24 +169,33 @@
           return;
         }
         
+        if (!isFormValid.value) {
+          if (!isPasswordValid.value) {
+            message.value = 'Le mot de passe ne répond pas aux exigences de sécurité';
+          } else if (passwordsDoNotMatch.value) {
+            message.value = 'Les mots de passe ne correspondent pas';
+          }
+          return;
+        }
+        
         loading.value = true;
         errors.value = {};
         
         try {
-            console.log('Envoi des données de réinitialisation:', {
-      token: token.value,
-      email: email.value,
-      password: password.value,
-      password_confirmation: passwordConfirmation.value
-    });
-    
-            const response = await api.post<PasswordResetResponse>('/reset-password-token', {
-          token: token.value,
-          email: email.value,
-          password: password.value,
-          password_confirmation: passwordConfirmation.value
-        });
+          console.log('Envoi des données de réinitialisation:', {
+            token: token.value,
+            email: email.value,
+            password: password.value,
+            password_confirmation: passwordConfirmation.value
+          });
           
+          const response = await api.post<PasswordResetResponse>('/reset-password-token', {
+            token: token.value,
+            email: email.value,
+            password: password.value,
+            password_confirmation: passwordConfirmation.value
+          });
+            
           message.value = response.message || 'Votre mot de passe a été réinitialisé avec succès.';
           success.value = true;
           
@@ -146,6 +228,11 @@
         message,
         success,
         errors,
+        showPasswordRequirements,
+        passwordValidation,
+        passwordsDoNotMatch,
+        isFormValid,
+        validatePasswordInput,
         resetPassword
       };
     }
@@ -153,7 +240,7 @@
   </script>
   
   <style scoped>
-  /* Mêmes styles que pour ForgotPasswordView */
+  /* Mêmes styles que pour ForgotPasswordView avec ajouts pour les exigences de mot de passe */
   .reset-password-container {
     max-width: 400px;
     margin: 0 auto;
@@ -201,6 +288,52 @@
   .alert-error {
     background-color: #f8d7da;
     color: #721c24;
+  }
+  
+  .password-requirements {
+    display: none;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  
+  .requirements-visible {
+    display: block;
+  }
+  
+  .password-requirements h4 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  
+  .password-requirements ul {
+    margin: 0;
+    padding-left: 20px;
+  }
+  
+  .password-requirements li {
+    margin-bottom: 5px;
+    color: #757575;
+  }
+  
+  .password-requirements li.valid {
+    color: #4CAF50;
+  }
+  
+  .password-requirements li.valid::before {
+    content: '✓ ';
+  }
+  
+  .success-message {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 15px;
+    border-radius: 4px;
+    text-align: center;
+    margin-bottom: 20px;
   }
   
   .form-actions {
