@@ -39,13 +39,6 @@ const router = createRouter({
       component: () => import('../views/questionnaire/QuestionnaireQuestionsView.vue'),
       meta: { title: 'Questionnaire - CESIZen', requiresAuth: true }
     },
-    // Ancienne route pour la vue questionnaire (conservée pour la compatibilité)
-    {
-      path: '/diagnostics',
-      name: 'questionnaire',
-      component: () => import('../views/questionnaire/QuestionnaireView.vue'),
-      meta: { title: 'Questionnaire de stress - CESIZen', requiresAuth: true }
-    },
     // Route pour les résultats
     {
       path: '/diagnostics/:id',
