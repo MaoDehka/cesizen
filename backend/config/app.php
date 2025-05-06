@@ -129,6 +129,7 @@ return [
     /*
      * Package Service Providers...
      */
+    Tymon\JWTAuth\Providers\LaravelServiceProvider::class,
 
     /*
      * Application Service Providers...
@@ -136,6 +137,11 @@ return [
     App\Providers\AppServiceProvider::class,
     App\Providers\AuthServiceProvider::class,
     App\Providers\RouteServiceProvider::class,
+])->toArray(),
+
+'aliases' => Facade::defaultAliases()->merge([
+    'JWTAuth' => Tymon\JWTAuth\Facades\JWTAuth::class,
+    'JWTFactory' => Tymon\JWTAuth\Facades\JWTFactory::class,
 ])->toArray(),
 
 ];

@@ -117,20 +117,39 @@ router.beforeEach((to, from, next) => {
   const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin)
   const isForGuests = to.matched.some(record => record.meta.guest)
 
+  // Vérifier si un token JWT valide est présent
+  const tokenExpiresAtStr = localStorage.getItem('token_expires_at')
+  let tokenExpired = false
+  
+  if (tokenExpiresAtStr) {
+    const tokenExpiresAt = parseInt(tokenExpiresAtStr)
+    tokenExpired = Date.now() > tokenExpiresAt
+  }
+  
+  // Si le token est expiré, déconnecter l'utilisateur
+  if (tokenExpired && authStore.isAuthenticated) {
+    authStore.logout()
+    return next({ name: 'login', query: { expired: 'true' } })
+  }
+
   // Rediriger vers la page de connexion si l'authentification est requise mais l'utilisateur n'est pas connecté
   if (requiresAuth && !authStore.isAuthenticated) {
-    next({ name: 'login', query: { redirect: to.fullPath } })
+    return next({ name: 'login', query: { redirect: to.fullPath } })
   } 
   // Rediriger vers la page d'accueil si la page est réservée aux visiteurs mais l'utilisateur est connecté
   else if (isForGuests && authStore.isAuthenticated) {
-    next({ name: 'home' })
+    return next({ name: 'home' })
   } 
   // Rediriger vers la page d'accueil si la page est réservée aux administrateurs mais l'utilisateur n'est pas admin
   else if (requiresAdmin && !authStore.isAdmin) {
-    next({ name: 'home' })
+    return next({ name: 'home' })
   } 
+  // Si l'utilisateur vient de se connecter et avait une redirection en attente
+  else if (to.name === 'login' && to.query.redirect && authStore.isAuthenticated) {
+    return next({ path: to.query.redirect as string })
+  }
   else {
-    next()
+    return next()
   }
 })
 

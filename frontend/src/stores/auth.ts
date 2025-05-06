@@ -3,10 +3,13 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User, LoginForm, RegisterForm } from '../types'
 import api from '../services/api'
+import jwtConfig from '../config/jwt'
 
 interface AuthResponse {
   user: User;
   token: string;
+  token_type: string;
+  expires_in: number;
   message?: string;
 }
 
@@ -18,7 +21,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Chargement initial des données d'authentification depuis le localStorage
   const initAuth = () => {
-    const storedToken = localStorage.getItem('token')
+    const storedToken = localStorage.getItem(jwtConfig.storageTokenKey)
     const storedUser = localStorage.getItem('user')
     
     if (storedToken && storedUser) {
@@ -44,8 +47,15 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = response.token
       user.value = response.user
       
-      localStorage.setItem('token', response.token)
+      // Stocker le token JWT et les informations utilisateur
+      localStorage.setItem(jwtConfig.storageTokenKey, response.token)
       localStorage.setItem('user', JSON.stringify(response.user))
+      
+      // Calculer le moment d'expiration du token
+      if (response.expires_in) {
+        const expiresAt = new Date().getTime() + response.expires_in * 1000
+        localStorage.setItem(jwtConfig.storageExpirationKey, expiresAt.toString())
+      }
       
       return response
     } catch (err: any) {
@@ -66,8 +76,15 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = response.token
       user.value = response.user
       
-      localStorage.setItem('token', response.token)
+      // Stocker le token JWT et les informations utilisateur
+      localStorage.setItem(jwtConfig.storageTokenKey, response.token)
       localStorage.setItem('user', JSON.stringify(response.user))
+      
+      // Calculer le moment d'expiration du token
+      if (response.expires_in) {
+        const expiresAt = new Date().getTime() + response.expires_in * 1000
+        localStorage.setItem(jwtConfig.storageExpirationKey, expiresAt.toString())
+      }
       
       return response
     } catch (err: any) {
@@ -88,9 +105,47 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       user.value = null
       token.value = null
-      localStorage.removeItem('token')
+      localStorage.removeItem(jwtConfig.storageTokenKey)
+      localStorage.removeItem(jwtConfig.storageExpirationKey)
       localStorage.removeItem('user')
       loading.value = false
+    }
+  }
+
+  const refreshToken = async () => {
+    try {
+      const response = await api.post<AuthResponse>(jwtConfig.refreshEndpoint)
+      
+      if (response.token) {
+        token.value = response.token
+        localStorage.setItem(jwtConfig.storageTokenKey, response.token)
+        
+        // Mettre à jour la date d'expiration
+        if (response.expires_in) {
+          const expiresAt = new Date().getTime() + response.expires_in * 1000
+          localStorage.setItem(jwtConfig.storageExpirationKey, expiresAt.toString())
+        }
+        
+        return true
+      }
+      return false
+    } catch (err) {
+      console.error('Erreur lors du rafraîchissement du token:', err)
+      return false
+    }
+  }
+
+  const checkTokenExpiration = () => {
+    const expiresAtStr = localStorage.getItem(jwtConfig.storageExpirationKey)
+    
+    if (expiresAtStr) {
+      const expiresAt = parseInt(expiresAtStr)
+      const now = new Date().getTime()
+      
+      // Si le token expire dans moins de X minutes (défini dans jwtConfig), le rafraîchir
+      if (expiresAt - now < jwtConfig.refreshBeforeExpiry * 60 * 1000) {
+        refreshToken()
+      }
     }
   }
 
@@ -127,6 +182,8 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     register,
     logout,
+    refreshToken,
+    checkTokenExpiration,
     fetchUser
   }
 })

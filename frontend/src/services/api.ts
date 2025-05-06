@@ -1,4 +1,5 @@
 // src/services/api.ts
+import jwtConfig from '../config/jwt';
 
 interface ApiOptions {
   method?: string;
@@ -20,17 +21,16 @@ class ApiService {
       ...options.headers
     };
     
-    // Ajouter le token d'authentification s'il existe
-    const token = localStorage.getItem('token');
+    // Ajouter le token d'authentification JWT s'il existe
+    const token = localStorage.getItem(jwtConfig.storageTokenKey);
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers[jwtConfig.authHeader] = `${jwtConfig.tokenPrefix} ${token}`;
     }
     
     // Préparer les options de la requête
     const fetchOptions: RequestInit = {
       method: options.method || 'GET',
-      headers,
-      credentials: 'include' // Pour les cookies CSRF avec Sanctum
+      headers
     };
     
     // Ajouter le body si nécessaire
@@ -46,10 +46,24 @@ class ApiService {
 
       // Gérer les erreurs d'authentification
       if (response.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-        throw new Error('Session expirée, veuillez vous reconnecter');
+        // Vérifier si c'est un token expiré et tenter de le rafraîchir si endpoint n'est pas déjà refresh-token
+        if (endpoint !== jwtConfig.refreshEndpoint) {
+          try {
+            const refreshResult = await this.refreshToken();
+            if (refreshResult) {
+              // Relancer la requête originale avec le nouveau token
+              return this.request<T>(endpoint, options);
+            }
+          } catch (refreshError) {
+            // Si le rafraîchissement échoue, déconnexion
+            this.handleAuthError();
+            throw new Error('Session expirée, veuillez vous reconnecter');
+          }
+        } else {
+          // Si c'est déjà une tentative de rafraîchissement, déconnexion
+          this.handleAuthError();
+          throw new Error('Session expirée, veuillez vous reconnecter');
+        }
       }
       
       // Extraire le texte de la réponse pour un meilleur débogage
@@ -106,6 +120,39 @@ class ApiService {
       }
       throw new Error('Une erreur de réseau est survenue');
     }
+  }
+  
+  // Rafraîchir le token JWT
+  private async refreshToken(): Promise<boolean> {
+    try {
+      const response = await this.post<{token: string, expires_in: number}>(jwtConfig.refreshEndpoint);
+      
+      if (response.token) {
+        // Mettre à jour le token dans le localStorage
+        localStorage.setItem(jwtConfig.storageTokenKey, response.token);
+        
+        // Mettre à jour la date d'expiration
+        if (response.expires_in) {
+          const expiresAt = new Date().getTime() + response.expires_in * 1000;
+          localStorage.setItem(jwtConfig.storageExpirationKey, expiresAt.toString());
+        }
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Erreur lors du rafraîchissement du token:', error);
+      return false;
+    }
+  }
+  
+  // Gestion des erreurs d'authentification
+  private handleAuthError() {
+    localStorage.removeItem(jwtConfig.storageTokenKey);
+    localStorage.removeItem(jwtConfig.storageExpirationKey);
+    localStorage.removeItem('user');
+    window.location.href = '/login';
   }
   
   // Méthodes HTTP

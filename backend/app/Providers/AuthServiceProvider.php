@@ -21,8 +21,8 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // $this->registerPolicies();
-
-        //
+        $this->registerPolicies();
+        
+        // Le package JWT s'enregistre automatiquement
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\JWTAuthController;
 use App\Http\Controllers\API\DiagnosticController;
 use App\Http\Controllers\API\QuestionController;
 use App\Http\Controllers\API\QuestionnaireController;
@@ -14,18 +14,18 @@ use App\Http\Controllers\API\ResetPasswordController;
 use Illuminate\Support\Facades\Route;
 
 // Routes publiques
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [JWTAuthController::class, 'register']);
+Route::post('/login', [JWTAuthController::class, 'login']);
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
+Route::post('/reset-password-token', [ResetPasswordController::class, 'reset']);
 
-Route::post('/forgot-password', [App\Http\Controllers\API\ForgotPasswordController::class, 'sendResetLinkEmail']);
-Route::post('/reset-password-token', [App\Http\Controllers\API\ResetPasswordController::class, 'reset']);
-
-// Routes protégées par authentification
-Route::middleware('auth:sanctum')->group(function () {
+// Routes protégées par JWT
+Route::middleware('auth:api')->group(function () {
     // Utilisateur
-    Route::get('/user', [AuthController::class, 'user']);
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+    Route::get('/user', [JWTAuthController::class, 'user']);
+    Route::post('/logout', [JWTAuthController::class, 'logout']);
+    Route::post('/reset-password', [JWTAuthController::class, 'resetPassword']);
+    Route::post('/refresh-token', [JWTAuthController::class, 'refreshToken']);
     
     // Questionnaires (accessible à tous les utilisateurs authentifiés)
     Route::get('/questionnaires', [QuestionnaireController::class, 'index']);
@@ -69,13 +69,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Gestion des questions
     Route::apiResource('/questions', QuestionController::class);
 
-// Routes pour les contenus accessibles à tous
-Route::get('/contents/{page}', [ContentController::class, 'getByPage']);
-
-// Routes pour l'administration des contenus (protégées par auth:sanctum)
-Route::middleware(['auth:sanctum'])->group(function () {
+    // Routes pour l'administration des contenus 
     Route::get('/admin/contents', [ContentController::class, 'index']);
     Route::get('/admin/contents/{id}', [ContentController::class, 'show']);
     Route::put('/admin/contents/{id}', [ContentController::class, 'update']);
 });
-});
+
+// Routes pour les contenus accessibles à tous
+Route::get('/contents/{page}', [ContentController::class, 'getByPage']);

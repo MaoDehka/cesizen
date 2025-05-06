@@ -75,11 +75,12 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, ref, onMounted, watch, onUnmounted } from 'vue';
+import { defineComponent, computed, ref, onMounted, watch, onUnmounted, onBeforeMount } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth';
 import { useContentStore } from './stores/content';
 import type { Content } from './types';
+import jwtConfig from './config/jwt';
 
 interface MenuItem {
   text: string;
@@ -102,6 +103,23 @@ export default defineComponent({
     const isAuthenticated = computed(() => authStore.isAuthenticated);
     const isAdmin = computed(() => authStore.isAdmin);
     const currentYear = new Date().getFullYear();
+    
+    // Vérification périodique de l'expiration du token
+    let tokenCheckInterval: number | null = null;
+    
+    const setupTokenCheck = () => {
+      if (isAuthenticated.value) {
+        // Nettoyer l'intervalle existant si présent
+        if (tokenCheckInterval !== null) {
+          clearInterval(tokenCheckInterval);
+        }
+        
+        // Vérifier l'expiration du token selon l'intervalle configuré
+        tokenCheckInterval = window.setInterval(() => {
+          authStore.checkTokenExpiration();
+        }, jwtConfig.tokenCheckInterval);
+      }
+    };
     
     const fetchContents = async () => {
       try {
@@ -167,22 +185,45 @@ export default defineComponent({
     };
     
     // Charger les contenus au montage et configurer l'écouteur
+    onBeforeMount(() => {
+      // Vérifier si l'utilisateur est déjà authentifié
+      if (isAuthenticated.value) {
+        authStore.fetchUser();
+        setupTokenCheck();
+      }
+    });
+    
     onMounted(() => {
       if (isAuthenticated.value) {
         fetchContents();
       }
       
       setupContentUpdateListener();
+      setupTokenCheck();
     });
     
     // Observer les changements d'authentification
     watch(isAuthenticated, (newValue) => {
       if (newValue === true) {
         fetchContents();
+        setupTokenCheck();
       } else {
         menuContent.value = null;
         footerContent.value = null;
         parsedMenu.value = null;
+        
+        // Nettoyer l'intervalle de vérification du token
+        if (tokenCheckInterval !== null) {
+          clearInterval(tokenCheckInterval);
+          tokenCheckInterval = null;
+        }
+      }
+    });
+    
+    // Nettoyer les ressources lors de la destruction du composant
+    onUnmounted(() => {
+      if (tokenCheckInterval !== null) {
+        clearInterval(tokenCheckInterval);
       }
     });
     
