@@ -9,11 +9,12 @@ interface ApiOptions {
 
 // Function to get the appropriate base URL depending on the platform
 function getBaseUrl() {
-  if (Capacitor.isNativePlatform()) {
-    // L'adresse IP 
+  const isNative = Capacitor.isNativePlatform();
+  console.log(`Plateforme détectée: ${isNative ? 'Native' : 'Web'}`);
+  
+  if (isNative) {
     return 'http://192.168.1.154:8000/api';
   } else {
-    // Pour le navigateur web
     return 'http://localhost:8000/api';
   }
 }
@@ -39,7 +40,7 @@ class ApiService {
     // Préparer les options de la requête
     const fetchOptions: RequestInit = {
       method: options.method || 'GET',
-      headers
+      headers,
     };
     
     // Ajouter le body si nécessaire

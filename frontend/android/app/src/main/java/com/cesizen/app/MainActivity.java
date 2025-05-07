@@ -14,5 +14,11 @@ public class MainActivity extends BridgeActivity {
         WebView webView = getBridge().getWebView();
         WebSettings settings = webView.getSettings();
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        settings.setDomStorageEnabled(true);
+settings.setJavaScriptEnabled(true);
+settings.setAllowFileAccess(true);
+settings.setAllowContentAccess(true);
+settings.setAllowFileAccessFromFileURLs(true);
+settings.setAllowUniversalAccessFromFileURLs(true);
     }
 }

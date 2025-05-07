@@ -4,7 +4,6 @@ const config: CapacitorConfig = {
   appId: 'com.cesizen.app',
   appName: 'CESIZen',
   webDir: 'dist',
-
   plugins: {
     SplashScreen: {
       launchShowDuration: 3000,
@@ -29,7 +28,8 @@ const config: CapacitorConfig = {
     }
   },
   server: {
-    androidScheme: 'https'
+    cleartext: true,
+    androidScheme: 'http'
   }
 };
 
