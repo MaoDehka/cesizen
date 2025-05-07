@@ -1,5 +1,5 @@
-// src/services/api.ts
 import jwtConfig from '../config/jwt';
+import { Capacitor } from '@capacitor/core';
 
 interface ApiOptions {
   method?: string;
@@ -7,11 +7,20 @@ interface ApiOptions {
   body?: any;
 }
 
-const BASE_URL = 'http://localhost:8000/api';
+// Function to get the appropriate base URL depending on the platform
+function getBaseUrl() {
+  if (Capacitor.isNativePlatform()) {
+    // L'adresse IP 
+    return 'http://192.168.1.154:8000/api';
+  } else {
+    // Pour le navigateur web
+    return 'http://localhost:8000/api';
+  }
+}
 
 class ApiService {
   private async request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
-    const url = `${BASE_URL}${endpoint}`;
+    const url = `${getBaseUrl()}${endpoint}`;
     console.log(`Envoi de la requête à: ${url}`, { method: options.method || 'GET' });
 
     // Ajouter les headers par défaut
@@ -170,7 +179,7 @@ class ApiService {
   
   async put<T>(endpoint: string, data?: any, headers?: Record<string, string>): Promise<T> {
     try {
-      console.log('PUT request to:', `${BASE_URL}${endpoint}`, 'with data:', data);
+      console.log('PUT request to:', `${getBaseUrl()}${endpoint}`, 'with data:', data);
       
       const response = await this.request<T>(endpoint, {
         method: 'PUT',
