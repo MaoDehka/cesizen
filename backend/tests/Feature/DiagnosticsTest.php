@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Browser;
+namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Role;
@@ -9,14 +9,13 @@ use App\Models\Question;
 use App\Models\StressLevel;
 use App\Models\Recommendation;
 use App\Models\Diagnostic;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Laravel\Dusk\Browser;
-use Tests\DuskTestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 use Carbon\Carbon;
 
-class DiagnosticsTest extends DuskTestCase
+class DiagnosticsTest extends TestCase
 {
-    use DatabaseMigrations;
+    use RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -34,10 +33,10 @@ class DiagnosticsTest extends DuskTestCase
         ]);
 
         // Créer un utilisateur
-        User::create([
+        $user = User::create([
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'password' => bcrypt('password123'),
+            'password' => bcrypt('Password123!@#'),
             'role_id' => Role::where('name', 'user')->first()->id,
             'active' => true
         ]);
@@ -142,35 +141,36 @@ class DiagnosticsTest extends DuskTestCase
      */
     public function testRealisationQuestionnaire()
     {
-        $this->browse(function (Browser $browser) {
-            // Connexion
-            $browser->visit('/login')
-                    ->type('email', 'test@example.com')
-                    ->type('password', 'password123')
-                    ->press('Se connecter')
-                    ->waitForLocation('/')
-                    
-                    // Accéder à la liste des questionnaires
-                    ->clickLink('Diagnostics')
-                    ->waitForLocation('/questionnaires')
-                    ->assertSee('Test de stress')
-                    
-                    // Sélectionner le questionnaire
-                    ->click('.questionnaire-card')
-                    ->waitFor('.question-card')
-                    
-                    // Répondre aux questions
-                    ->click('.btn-yes') // Question 1: OUI
-                    ->waitFor('.question-card')
-                    ->click('.btn-no')  // Question 2: NON
-                    ->waitFor('.question-card')
-                    ->click('.btn-yes') // Question 3: OUI
-                    
-                    // Vérifier l'affichage du résultat
-                    ->waitForLocation('/diagnostics/')
-                    ->assertSee('Score de stress')
-                    ->assertSee('Risque détecté');
-        });
+        $user = User::where('email', 'test@example.com')->first();
+        $token = $this->getAuthToken();
+        $questionnaire = Questionnaire::first();
+        
+        // Récupérer les questions
+        $questions = Question::where('questionnaire_id', $questionnaire->id)
+                            ->pluck('id')
+                            ->toArray();
+
+        // Créer un nouveau diagnostic avec les questions du questionnaire
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson('/api/diagnostics', [
+            'questionnaire_id' => $questionnaire->id,
+            'questions' => [$questions[0], $questions[2]] // Répondre oui à la première et troisième question
+        ]);
+
+        $response->assertStatus(201)
+                 ->assertJsonStructure([
+                     'diagnostic',
+                     'stress_level_details',
+                     'recommendations'
+                 ]);
+                 
+        // Vérifier que le diagnostic a bien été créé
+        $this->assertDatabaseHas('diagnostics', [
+            'user_id' => $user->id,
+            'questionnaire_id' => $questionnaire->id,
+            'score_total' => 150, // 50 + 100 (les scores des questions répondues par oui)
+        ]);
     }
 
     /**
@@ -178,30 +178,22 @@ class DiagnosticsTest extends DuskTestCase
      */
     public function testConsultationDiagnostic()
     {
-        $this->browse(function (Browser $browser) {
-            // Récupérer l'ID du diagnostic existant
-            $diagnostic = Diagnostic::first();
+        $token = $this->getAuthToken();
+        $diagnostic = Diagnostic::first();
 
-            // Connexion
-            $browser->visit('/login')
-                    ->type('email', 'test@example.com')
-                    ->type('password', 'password123')
-                    ->press('Se connecter')
-                    ->waitForLocation('/')
-                    
-                    // Accéder à l'historique
-                    ->clickLink('Historique')
-                    ->waitForLocation('/history')
-                    
-                    // Consulter le diagnostic
-                    ->click('.btn-view')
-                    ->waitForLocation('/diagnostics/' . $diagnostic->id)
-                    
-                    // Vérifier l'affichage des détails
-                    ->assertSee('Score de stress')
-                    ->assertSee($diagnostic->score_total)
-                    ->assertSee('Risque détecté : ' . $diagnostic->stress_level);
-        });
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->getJson('/api/diagnostics/' . $diagnostic->id);
+
+        $response->assertStatus(200)
+                 ->assertJsonStructure([
+                     'diagnostic',
+                     'stress_level_details',
+                     'recommendations'
+                 ])
+                 ->assertJsonPath('diagnostic.id', $diagnostic->id)
+                 ->assertJsonPath('diagnostic.score_total', $diagnostic->score_total)
+                 ->assertJsonPath('diagnostic.stress_level', $diagnostic->stress_level);
     }
 
     /**
@@ -209,37 +201,35 @@ class DiagnosticsTest extends DuskTestCase
      */
     public function testSauvegardeDiagnostic()
     {
-        $this->browse(function (Browser $browser) {
-            // Connexion
-            $browser->visit('/login')
-                    ->type('email', 'test@example.com')
-                    ->type('password', 'password123')
-                    ->press('Se connecter')
-                    ->waitForLocation('/')
-                    
-                    // Accéder à la liste des questionnaires
-                    ->clickLink('Diagnostics')
-                    ->waitForLocation('/questionnaires')
-                    
-                    // Sélectionner le questionnaire
-                    ->click('.questionnaire-card')
-                    ->waitFor('.question-card')
-                    
-                    // Répondre aux questions
-                    ->click('.btn-yes')
-                    ->waitFor('.question-card')
-                    ->click('.btn-yes')
-                    ->waitFor('.question-card')
-                    ->click('.btn-yes')
-                    
-                    // Arriver à la page de résultat
-                    ->waitForLocation('/diagnostics/')
-                    
-                    // Sauvegarder le diagnostic
-                    ->click('.btn-save')
-                    ->waitForText('Résultat sauvegardé')
-                    ->assertSee('Résultat sauvegardé');
-        });
+        $token = $this->getAuthToken();
+        
+        // Créer un nouveau diagnostic non sauvegardé
+        $user = User::where('email', 'test@example.com')->first();
+        $questionnaire = Questionnaire::first();
+        
+        $diagnostic = Diagnostic::create([
+            'user_id' => $user->id,
+            'questionnaire_id' => $questionnaire->id,
+            'score_total' => 75,
+            'stress_level' => 'Faible',
+            'diagnostic_date' => Carbon::now(),
+            'consequences' => 'Conséquences test',
+            'advices' => 'Conseils test',
+            'saved' => false
+        ]);
+
+        // Sauvegarder le diagnostic
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson('/api/diagnostics/' . $diagnostic->id . '/save');
+
+        $response->assertStatus(200);
+        
+        // Vérifier que le diagnostic est maintenant sauvegardé
+        $this->assertDatabaseHas('diagnostics', [
+            'id' => $diagnostic->id,
+            'saved' => true
+        ]);
     }
 
     /**
@@ -247,27 +237,19 @@ class DiagnosticsTest extends DuskTestCase
      */
     public function testSuppressionDiagnostic()
     {
-        $this->browse(function (Browser $browser) {
-            // Connexion
-            $browser->visit('/login')
-                    ->type('email', 'test@example.com')
-                    ->type('password', 'password123')
-                    ->press('Se connecter')
-                    ->waitForLocation('/')
-                    
-                    // Accéder à l'historique
-                    ->clickLink('Historique')
-                    ->waitForLocation('/history')
-                    
-                    // Supprimer le diagnostic
-                    ->click('.btn-delete')
-                    ->waitFor('.modal')
-                    ->click('.modal .btn-delete') // Confirmer la suppression
-                    
-                    // Vérifier que le diagnostic a été supprimé
-                    ->waitUntilMissing('.modal')
-                    ->assertDontSee('Modéré');
-        });
+        $token = $this->getAuthToken();
+        $diagnostic = Diagnostic::first();
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->deleteJson('/api/diagnostics/' . $diagnostic->id);
+
+        $response->assertStatus(200);
+        
+        // Vérifier que le diagnostic a été supprimé
+        $this->assertDatabaseMissing('diagnostics', [
+            'id' => $diagnostic->id
+        ]);
     }
 
     /**
@@ -275,29 +257,30 @@ class DiagnosticsTest extends DuskTestCase
      */
     public function testAccesRecommandations()
     {
-        $this->browse(function (Browser $browser) {
-            // Récupérer l'ID du diagnostic existant
-            $diagnostic = Diagnostic::first();
+        $token = $this->getAuthToken();
+        $diagnostic = Diagnostic::first();
 
-            // Connexion
-            $browser->visit('/login')
-                    ->type('email', 'test@example.com')
-                    ->type('password', 'password123')
-                    ->press('Se connecter')
-                    ->waitForLocation('/')
-                    
-                    // Accéder à l'historique
-                    ->clickLink('Historique')
-                    ->waitForLocation('/history')
-                    
-                    // Consulter le diagnostic
-                    ->click('.btn-view')
-                    ->waitForLocation('/diagnostics/' . $diagnostic->id)
-                    
-                    // Vérifier l'affichage des recommandations
-                    ->assertSee('Solutions recommandées')
-                    ->assertSee('Pratiquez une activité physique régulière')
-                    ->assertSee('Adoptez des techniques de relaxation');
-        });
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->getJson('/api/diagnostics/' . $diagnostic->id);
+
+        $response->assertStatus(200)
+                 ->assertJsonStructure(['recommendations'])
+                 ->assertJsonCount(2, 'recommendations'); // On doit avoir les 2 recommandations créées
+    }
+    
+    /**
+     * Obtient un token d'authentification pour les tests
+     *
+     * @return string
+     */
+    private function getAuthToken()
+    {
+        $loginResponse = $this->postJson('/api/login', [
+            'email' => 'test@example.com',
+            'password' => 'Password123!@#'
+        ]);
+        
+        return $loginResponse->json('token');
     }
 }

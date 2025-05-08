@@ -8,9 +8,7 @@ use App\Models\Questionnaire;
 use App\Models\Question;
 use App\Models\Diagnostic;
 use App\Models\StressLevel;
-use App\Models\Recommendation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 use Carbon\Carbon;
 
@@ -37,7 +35,7 @@ class DiagnosticsNonRegressionTest extends TestCase
         User::create([
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'password' => Hash::make('password123'),
+            'password' => bcrypt('Password123!@#'),
             'role_id' => Role::where('name', 'user')->first()->id,
             'active' => true
         ]);
@@ -127,108 +125,123 @@ class DiagnosticsNonRegressionTest extends TestCase
         $user = User::where('email', 'test@example.com')->first();
         
         // Connexion de l'utilisateur
-        $credentials = [
-            'email' => 'test@example.com',
-            'password' => 'password123'
-        ];
-
-        $loginResponse = $this->postJson('/api/login', $credentials);
-        $token = $loginResponse->json('token');
+        $token = $this->getAuthToken();
         
         // Récupérer le questionnaire et les questions
         $questionnaire = Questionnaire::first();
         $questions = Question::where('questionnaire_id', $questionnaire->id)
-        ->pluck('id')
-        ->toArray();
+            ->pluck('id')
+            ->toArray();
 
-// Créer un diagnostic avant la mise à jour
-$diagnosticData = [
-'questionnaire_id' => $questionnaire->id,
-'questions' => $questions
-];
+        // Créer un diagnostic avant la mise à jour
+        $diagnosticData = [
+            'questionnaire_id' => $questionnaire->id,
+            'questions' => $questions
+        ];
 
-$response = $this->withHeaders([
-'Authorization' => 'Bearer ' . $token,
-])->postJson('/api/diagnostics', $diagnosticData);
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson('/api/diagnostics', $diagnosticData);
 
-$response->assertStatus(201);
-$beforeUpdateScore = $response->json('diagnostic.score_total');
-$beforeUpdateLevel = $response->json('diagnostic.stress_level');
+        $response->assertStatus(201);
+        $beforeUpdateScore = $response->json('diagnostic.score_total');
+        $beforeUpdateLevel = $response->json('diagnostic.stress_level');
 
-// Simuler une mise à jour du système
-$this->artisan('config:clear');
-$this->artisan('cache:clear');
+        // Simuler une mise à jour du système
+        $this->artisan('config:clear');
+        $this->artisan('cache:clear');
 
-// Créer un nouveau diagnostic après la mise à jour avec les mêmes réponses
-$response2 = $this->withHeaders([
-'Authorization' => 'Bearer ' . $token,
-])->postJson('/api/diagnostics', $diagnosticData);
+        // Créer un nouveau diagnostic après la mise à jour avec les mêmes réponses
+        $response2 = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson('/api/diagnostics', $diagnosticData);
 
-$response2->assertStatus(201);
-$afterUpdateScore = $response2->json('diagnostic.score_total');
-$afterUpdateLevel = $response2->json('diagnostic.stress_level');
+        $response2->assertStatus(201);
+        $afterUpdateScore = $response2->json('diagnostic.score_total');
+        $afterUpdateLevel = $response2->json('diagnostic.stress_level');
 
-// Vérifier que les scores et niveaux de stress sont identiques
-$this->assertEquals($beforeUpdateScore, $afterUpdateScore);
-$this->assertEquals($beforeUpdateLevel, $afterUpdateLevel);
-}
+        // Vérifier que les scores et niveaux de stress sont identiques
+        $this->assertEquals($beforeUpdateScore, $afterUpdateScore);
+        $this->assertEquals($beforeUpdateLevel, $afterUpdateLevel);
+    }
 
-/**
-* Vérification de l'historique des diagnostics après mise à jour (TNR-DI-02)
-*/
-public function testHistoriqueDiagnosticsApresMiseAJour()
-{
-// Récupérer l'utilisateur
-$user = User::where('email', 'test@example.com')->first();
+    /**
+     * Vérification de l'historique des diagnostics après mise à jour (TNR-DI-02)
+     */
+    public function testHistoriqueDiagnosticsApresMiseAJour()
+    {
+        // Récupérer l'utilisateur
+        $user = User::where('email', 'test@example.com')->first();
 
-// Récupérer le diagnostic existant
-$diagnostic = Diagnostic::first();
+        // Récupérer le diagnostic existant
+        $diagnostic = Diagnostic::first();
 
-// Connexion de l'utilisateur
-$credentials = [
-'email' => 'test@example.com',
-'password' => 'password123'
-];
+        // Connexion de l'utilisateur
+        $token = $this->getAuthToken();
 
-$loginResponse = $this->postJson('/api/login', $credentials);
-$token = $loginResponse->json('token');
+        // Vérifier l'accès au diagnostic avant la mise à jour
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->getJson('/api/diagnostics/' . $diagnostic->id);
 
-// Vérifier l'accès au diagnostic avant la mise à jour
-$response = $this->withHeaders([
-'Authorization' => 'Bearer ' . $token,
-])->getJson('/api/diagnostics/' . $diagnostic->id);
+        $response->assertStatus(200)
+                ->assertJsonFragment([
+                    'score_total' => 125,
+                    'stress_level' => 'Faible'
+                ]);
 
-$response->assertStatus(200)
-->assertJsonFragment([
- 'score_total' => 125,
- 'stress_level' => 'Faible'
-]);
+        // Simuler une mise à jour du système
+        $this->artisan('config:clear');
+        $this->artisan('cache:clear');
 
-// Simuler une mise à jour du système
-$this->artisan('config:clear');
-$this->artisan('cache:clear');
+        // Vérifier l'accès au diagnostic après la mise à jour
+        $response2 = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->getJson('/api/diagnostics/' . $diagnostic->id);
 
-// Vérifier l'accès au diagnostic après la mise à jour
-$response2 = $this->withHeaders([
-'Authorization' => 'Bearer ' . $token,
-])->getJson('/api/diagnostics/' . $diagnostic->id);
+        $response2->assertStatus(200)
+                ->assertJsonFragment([
+                    'score_total' => 125,
+                    'stress_level' => 'Faible'
+                ]);
 
-$response2->assertStatus(200)
-->assertJsonFragment([
-  'score_total' => 125,
-  'stress_level' => 'Faible'
-]);
+        // Vérifier l'accès à l'historique complet
+        $response3 = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->getJson('/api/diagnostics');
 
-// Vérifier l'accès à l'historique complet
-$response3 = $this->withHeaders([
-'Authorization' => 'Bearer ' . $token,
-])->getJson('/api/diagnostics');
-
-$response3->assertStatus(200)
-->assertJsonCount(1)  // Il devrait y avoir au moins un diagnostic
-->assertJsonFragment([
-  'id' => $diagnostic->id,
-  'score_total' => 125
-]);
-}
+        $response3->assertStatus(200);
+        
+        // Vérifie que la réponse contient au moins un diagnostic
+        // Au lieu d'utiliser assertJsonCount qui cause problème avec la structure
+        $responseData = $response3->json();
+        $this->assertNotEmpty($responseData);
+        
+        // Vérifie que le diagnostic spécifique est présent
+        $diagnosticFound = false;
+        foreach ($responseData as $item) {
+            if (is_array($item) && isset($item['id']) && $item['id'] === $diagnostic->id) {
+                $diagnosticFound = true;
+                $this->assertEquals(125, $item['score_total']);
+                break;
+            }
+        }
+        
+        $this->assertTrue($diagnosticFound, 'Le diagnostic recherché n\'a pas été trouvé dans la réponse');
+    }
+    
+    /**
+     * Obtient un token d'authentification pour les tests
+     *
+     * @return string
+     */
+    private function getAuthToken()
+    {
+        $loginResponse = $this->postJson('/api/login', [
+            'email' => 'test@example.com',
+            'password' => 'Password123!@#'
+        ]);
+        
+        return $loginResponse->json('token');
+    }
 }

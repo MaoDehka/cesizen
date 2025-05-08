@@ -1,16 +1,16 @@
 <?php
 
-namespace Tests\Browser;
+namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Role;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Laravel\Dusk\Browser;
-use Tests\DuskTestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+use Illuminate\Support\Facades\Hash;
 
-class CompteUtilisateursTest extends DuskTestCase
+class CompteUtilisateursTest extends TestCase
 {
-    use DatabaseMigrations;
+    use RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -31,7 +31,7 @@ class CompteUtilisateursTest extends DuskTestCase
         User::create([
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'password' => bcrypt('password123'),
+            'password' => Hash::make('Password123!@#'),
             'role_id' => Role::where('name', 'user')->first()->id,
             'active' => true
         ]);
@@ -42,17 +42,25 @@ class CompteUtilisateursTest extends DuskTestCase
      */
     public function testInscriptionUtilisateur()
     {
-        $this->browse(function (Browser $browser) {
-            $browser->visit('/register')
-                    ->type('name', 'New User')
-                    ->type('email', 'new@example.com')
-                    ->type('password', 'password123')
-                    ->type('password_confirmation', 'password123')
-                    ->check('acceptDataPolicy')
-                    ->press('S\'inscrire')
-                    ->waitForLocation('/')
-                    ->assertPathIs('/');
-        });
+        $userData = [
+            'name' => 'New User',
+            'email' => 'new@example.com',
+            // Utiliser un mot de passe qui respecte les règles de validation:
+            // - Au moins 12 caractères
+            // - Au moins une majuscule et une minuscule
+            // - Au moins un caractère spécial
+            'password' => 'Password123!@#',
+            'password_confirmation' => 'Password123!@#'
+        ];
+
+        $response = $this->postJson('/api/register', $userData);
+        
+        $response->assertStatus(201)
+                 ->assertJsonFragment(['message' => 'Inscription réussie']);
+        
+        $this->assertDatabaseHas('users', [
+            'email' => 'new@example.com'
+        ]);
     }
 
     /**
@@ -60,14 +68,16 @@ class CompteUtilisateursTest extends DuskTestCase
      */
     public function testConnexionUtilisateur()
     {
-        $this->browse(function (Browser $browser) {
-            $browser->visit('/login')
-                    ->type('email', 'test@example.com')
-                    ->type('password', 'password123')
-                    ->press('Se connecter')
-                    ->waitForLocation('/')
-                    ->assertPathIs('/');
-        });
+        $credentials = [
+            'email' => 'test@example.com',
+            'password' => 'Password123!@#'
+        ];
+
+        $response = $this->postJson('/api/login', $credentials);
+        
+        $response->assertStatus(200)
+                 ->assertJsonFragment(['message' => 'Connexion réussie'])
+                 ->assertJsonStructure(['token']);
     }
 
     /**
@@ -75,16 +85,14 @@ class CompteUtilisateursTest extends DuskTestCase
      */
     public function testDeconnexionUtilisateur()
     {
-        $this->browse(function (Browser $browser) {
-            $browser->visit('/login')
-                    ->type('email', 'test@example.com')
-                    ->type('password', 'password123')
-                    ->press('Se connecter')
-                    ->waitForLocation('/')
-                    ->clickLink('Déconnexion')
-                    ->waitForLocation('/login')
-                    ->assertPathIs('/login');
-        });
+        $token = $this->getAuthToken();
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson('/api/logout');
+
+        $response->assertStatus(200)
+                 ->assertJsonFragment(['message' => 'Déconnexion réussie']);
     }
 
     /**
@@ -92,20 +100,28 @@ class CompteUtilisateursTest extends DuskTestCase
      */
     public function testChangementMotDePasse()
     {
-        $this->browse(function (Browser $browser) {
-            $browser->visit('/login')
-                    ->type('email', 'test@example.com')
-                    ->type('password', 'password123')
-                    ->press('Se connecter')
-                    ->waitForLocation('/')
-                    ->visit('/profile')
-                    ->type('current_password', 'password123')
-                    ->type('password', 'newpassword123')
-                    ->type('password_confirmation', 'newpassword123')
-                    ->press('Changer le mot de passe')
-                    ->waitForText('Mot de passe modifié avec succès')
-                    ->assertSee('Mot de passe modifié avec succès');
-        });
+        $token = $this->getAuthToken();
+        
+        $passwordData = [
+            'current_password' => 'Password123!@#',
+            'password' => 'NewPassword456!@#',
+            'password_confirmation' => 'NewPassword456!@#'
+        ];
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->postJson('/api/reset-password', $passwordData);
+
+        $response->assertStatus(200)
+                 ->assertJsonFragment(['message' => 'Mot de passe modifié avec succès']);
+                 
+        // Vérifier que le nouveau mot de passe fonctionne
+        $newLoginResponse = $this->postJson('/api/login', [
+            'email' => 'test@example.com',
+            'password' => 'NewPassword456!@#'
+        ]);
+        
+        $newLoginResponse->assertStatus(200);
     }
 
     /**
@@ -118,13 +134,29 @@ class CompteUtilisateursTest extends DuskTestCase
         $user->active = false;
         $user->save();
 
-        $this->browse(function (Browser $browser) {
-            $browser->visit('/login')
-                    ->type('email', 'test@example.com')
-                    ->type('password', 'password123')
-                    ->press('Se connecter')
-                    ->waitForText('Votre compte a été désactivé')
-                    ->assertSee('Votre compte a été désactivé');
-        });
+        $credentials = [
+            'email' => 'test@example.com',
+            'password' => 'Password123!@#'
+        ];
+
+        $response = $this->postJson('/api/login', $credentials);
+        
+        $response->assertStatus(403)
+                 ->assertJsonFragment(['message' => 'Votre compte a été désactivé.']);
+    }
+    
+    /**
+     * Obtient un token d'authentification pour les tests
+     *
+     * @return string
+     */
+    private function getAuthToken()
+    {
+        $loginResponse = $this->postJson('/api/login', [
+            'email' => 'test@example.com',
+            'password' => 'Password123!@#'
+        ]);
+        
+        return $loginResponse->json('token');
     }
 }

@@ -1,17 +1,16 @@
 <?php
 
-namespace Tests\Browser;
+namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Role;
 use App\Models\Content;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Laravel\Dusk\Browser;
-use Tests\DuskTestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
-class InformationsTest extends DuskTestCase
+class InformationsTest extends TestCase
 {
-    use DatabaseMigrations;
+    use RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -32,7 +31,7 @@ class InformationsTest extends DuskTestCase
         User::create([
             'name' => 'Admin User',
             'email' => 'admin@example.com',
-            'password' => bcrypt('password123'),
+            'password' => bcrypt('Password456!@#'),
             'role_id' => Role::where('name', 'admin')->first()->id,
             'active' => true
         ]);
@@ -41,7 +40,7 @@ class InformationsTest extends DuskTestCase
         User::create([
             'name' => 'Normal User',
             'email' => 'user@example.com',
-            'password' => bcrypt('password123'),
+            'password' => bcrypt('Password456!@#'),
             'role_id' => Role::where('name', 'user')->first()->id,
             'active' => true
         ]);
@@ -60,6 +59,13 @@ class InformationsTest extends DuskTestCase
             'content' => '<h1>À propos de CESIZen</h1><p>Contenu de la page À propos</p>',
             'active' => true
         ]);
+        
+        Content::create([
+            'page' => 'inactive_page',
+            'title' => 'Page Inactive',
+            'content' => '<h1>Cette page est inactive</h1>',
+            'active' => false
+        ]);
     }
 
     /**
@@ -67,11 +73,14 @@ class InformationsTest extends DuskTestCase
      */
     public function testAffichagePageAccueil()
     {
-        $this->browse(function (Browser $browser) {
-            $browser->visit('/')
-                    ->assertSee('Bienvenue sur CESIZen')
-                    ->assertPresent('.dynamic-content');
-        });
+        $response = $this->getJson('/api/contents/home');
+        
+        $response->assertStatus(200)
+                 ->assertJsonFragment([
+                     'page' => 'home',
+                     'title' => 'Accueil',
+                     'content' => '<h1>Bienvenue sur CESIZen</h1><p>Contenu de la page d\'accueil</p>'
+                 ]);
     }
 
     /**
@@ -79,12 +88,14 @@ class InformationsTest extends DuskTestCase
      */
     public function testNavigationPageAbout()
     {
-        $this->browse(function (Browser $browser) {
-            $browser->visit('/')
-                    ->clickLink('À propos')
-                    ->waitForLocation('/about')
-                    ->assertSee('À propos de CESIZen');
-        });
+        $response = $this->getJson('/api/contents/about');
+        
+        $response->assertStatus(200)
+                 ->assertJsonFragment([
+                     'page' => 'about',
+                     'title' => 'À propos',
+                     'content' => '<h1>À propos de CESIZen</h1><p>Contenu de la page À propos</p>'
+                 ]);
     }
 
     /**
@@ -92,35 +103,28 @@ class InformationsTest extends DuskTestCase
      */
     public function testModificationContenuAdmin()
     {
-        $this->browse(function (Browser $browser) {
-            // Connexion en tant qu'admin
-            $browser->visit('/login')
-                    ->type('email', 'admin@example.com')
-                    ->type('password', 'password123')
-                    ->press('Se connecter')
-                    ->waitForLocation('/')
-                    
-                    // Accéder à la section admin
-                    ->clickLink('Admin')
-                    ->waitForLocation('/admin')
-                    
-                    // Aller à la gestion des contenus
-                    ->click('.tab-button[data-tab="contents"]')
-                    ->waitFor('.contents-tab')
-                    
-                    // Modifier le contenu de la page d'accueil
-                    ->click('.btn-edit')
-                    ->waitFor('.modal')
-                    ->type('#content_title', 'Nouveau titre d\'accueil')
-                    ->type('#content_html', '<h1>Nouveau contenu d\'accueil</h1><p>Texte modifié</p>')
-                    ->press('Enregistrer')
-                    ->waitUntilMissing('.modal')
-                    
-                    // Vérifier que le contenu a été mis à jour
-                    ->visit('/')
-                    ->assertSee('Nouveau contenu d\'accueil')
-                    ->assertSee('Texte modifié');
-        });
+        // Obtenir un token admin
+        $token = $this->getAdminAuthToken();
+        $content = Content::where('page', 'home')->first();
+        
+        $updateData = [
+            'title' => 'Nouveau titre d\'accueil',
+            'content' => '<h1>Nouveau contenu d\'accueil</h1><p>Texte modifié</p>'
+        ];
+        
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->putJson('/api/admin/contents/' . $content->id, $updateData);
+        
+        $response->assertStatus(200)
+                 ->assertJsonFragment(['message' => 'Contenu mis à jour avec succès']);
+        
+        // Vérifier que le contenu a été mis à jour en base de données
+        $this->assertDatabaseHas('contents', [
+            'id' => $content->id,
+            'title' => 'Nouveau titre d\'accueil',
+            'content' => '<h1>Nouveau contenu d\'accueil</h1><p>Texte modifié</p>'
+        ]);
     }
 
     /**
@@ -128,18 +132,55 @@ class InformationsTest extends DuskTestCase
      */
     public function testAccesGestionContenuNonAdmin()
     {
-        $this->browse(function (Browser $browser) {
-            // Connexion en tant qu'utilisateur normal
-            $browser->visit('/login')
-                    ->type('email', 'user@example.com')
-                    ->type('password', 'password123')
-                    ->press('Se connecter')
-                    ->waitForLocation('/')
-                    
-                    // Tenter d'accéder à la section admin
-                    ->visit('/admin')
-                    ->waitForLocation('/')
-                    ->assertPathIs('/');
-        });
+        // Obtenir un token utilisateur normal
+        $token = $this->getUserAuthToken();
+        
+        // Tenter d'accéder à la liste des contenus admin
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ])->getJson('/api/admin/contents');
+        
+        // La réponse devrait être une erreur d'autorisation
+        $response->assertStatus(403);
+    }
+    
+    /**
+     * Test de récupération d'un contenu inactif (TF-IN-05)
+     */
+    public function testRecuperationContenuInactif()
+    {
+        $response = $this->getJson('/api/contents/inactive_page');
+        
+        $response->assertStatus(404);
+    }
+    
+    /**
+     * Obtient un token d'authentification admin pour les tests
+     *
+     * @return string
+     */
+    private function getAdminAuthToken()
+    {
+        $loginResponse = $this->postJson('/api/login', [
+            'email' => 'admin@example.com',
+            'password' => 'Password456!@#'
+        ]);
+        
+        return $loginResponse->json('token');
+    }
+    
+    /**
+     * Obtient un token d'authentification utilisateur pour les tests
+     *
+     * @return string
+     */
+    private function getUserAuthToken()
+    {
+        $loginResponse = $this->postJson('/api/login', [
+            'email' => 'user@example.com',
+            'password' => 'Password456!@#'
+        ]);
+        
+        return $loginResponse->json('token');
     }
 }
