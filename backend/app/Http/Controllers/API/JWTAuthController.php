@@ -118,4 +118,47 @@ class JWTAuthController extends Controller
             'message' => 'Connexion réussie'
         ]);
     }
+
+    public function resetPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'current_password' => 'required',
+            'password' => [
+                'required',
+                'string',
+                'confirmed',
+                Password::min(8)
+                    ->mixedCase()
+                    ->letters()
+                    ->numbers()
+                    ->symbols()
+            ],
+        ], [
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères',
+            'password.mixed_case' => 'Le mot de passe doit contenir au moins une lettre majuscule et une lettre minuscule',
+            'password.letters' => 'Le mot de passe doit contenir au moins une lettre',
+            'password.numbers' => 'Le mot de passe doit contenir au moins un chiffre',
+            'password.symbols' => 'Le mot de passe doit contenir au moins un caractère spécial',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $user = $request->user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'message' => 'Le mot de passe actuel est incorrect.'
+            ], 401);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        return response()->json([
+            'message' => 'Mot de passe modifié avec succès'
+        ]);
+    }
 }

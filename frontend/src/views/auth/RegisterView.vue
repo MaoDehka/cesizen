@@ -184,7 +184,7 @@
         const password = registerForm.value.password;
         
         // Valider chaque critère individuellement
-        passwordValidation.value.minLength = password.length >= 8;
+        passwordValidation.value.minLength = password.length >= 12;
         passwordValidation.value.hasUppercase = /[A-Z]/.test(password);
         passwordValidation.value.hasLowercase = /[a-z]/.test(password);
         passwordValidation.value.hasDigit = /\d/.test(password);

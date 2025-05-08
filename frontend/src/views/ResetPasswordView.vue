@@ -116,7 +116,7 @@
         const pwd = password.value;
         
         // Valider chaque critère individuellement
-        passwordValidation.value.minLength = pwd.length >= 8;
+        passwordValidation.value.minLength = pwd.length >= 12;
         passwordValidation.value.hasUppercase = /[A-Z]/.test(pwd);
         passwordValidation.value.hasLowercase = /[a-z]/.test(pwd);
         passwordValidation.value.hasDigit = /\d/.test(pwd);
