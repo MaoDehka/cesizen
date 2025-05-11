@@ -11,13 +11,23 @@ use Carbon\Carbon;
 class QuestionnaireController extends Controller
 {
     public function index()
-    {
+{
+    // Vérifier si l'utilisateur connecté est admin
+    $user = auth()->user();
+    $isAdmin = $user && $user->role && $user->role->name === 'admin';
+    
+    // Si admin, retourner tous les questionnaires
+    if ($isAdmin) {
+        $questionnaires = Questionnaire::with('questions')->get();
+    } else {
+        // Pour les autres, seulement les actifs
         $questionnaires = Questionnaire::where('active', true)
             ->with('questions')
             ->get();
-            
-        return response()->json($questionnaires);
     }
+        
+    return response()->json($questionnaires);
+}
 
     public function show($id)
     {
