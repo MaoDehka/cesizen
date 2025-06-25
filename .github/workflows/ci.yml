@@ -184,7 +184,6 @@ jobs:
     needs: [build-and-push-images]
     environment:
       name: development
-      url: "http://${{ secrets.DEV_HOST }}"
     if: github.ref == 'refs/heads/develop'
     
     steps:
@@ -206,7 +205,6 @@ jobs:
     needs: [build-and-push-images]
     environment:
       name: test
-      url: "http://${{ secrets.TEST_HOST }}"
     if: github.ref == 'refs/heads/main'
     
     steps:
@@ -228,7 +226,6 @@ jobs:
     needs: [deploy-test]
     environment:
       name: production
-      url: "https://${{ secrets.PROD_HOST }}"
     if: github.ref == 'refs/heads/main'
     
     steps:
