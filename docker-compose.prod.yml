@@ -1,0 +1,307 @@
+version: '3.8'
+
+services:
+  # Base de données MySQL pour la production
+  mysql:
+    image: mysql:8.0
+    container_name: cesizen-prod-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+      MYSQL_DATABASE: cesizen_prod
+      MYSQL_USER: cesizen_user
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+    volumes:
+      - mysql_prod_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    secrets:
+      - mysql_root_password
+      - mysql_password
+    networks:
+      - cesizen-prod-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # Backend Laravel
+  backend:
+    image: ghcr.io/OWNER/cesizen-backend:latest
+    container_name: cesizen-prod-backend
+    environment:
+      APP_ENV: production
+      APP_DEBUG: false
+      APP_KEY_FILE: /run/secrets/laravel_app_key
+      APP_URL: https://${PROD_DOMAIN}
+      
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: cesizen_prod
+      DB_USERNAME: cesizen_user
+      DB_PASSWORD_FILE: /run/secrets/mysql_password
+      
+      CACHE_DRIVER: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+      
+      MAIL_MAILER: smtp
+      MAIL_HOST: ${SMTP_HOST}
+      MAIL_PORT: 587
+      MAIL_USERNAME: ${SMTP_USERNAME}
+      MAIL_PASSWORD_FILE: /run/secrets/smtp_password
+      MAIL_ENCRYPTION: tls
+      
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      
+      LOG_CHANNEL: daily
+      LOG_LEVEL: warning
+      
+      # Sécurité
+      SESSION_SECURE_COOKIE: true
+      SESSION_SAME_SITE: strict
+    volumes:
+      - backend_prod_storage:/var/www/html/storage
+      - backend_prod_logs:/var/www/html/storage/logs
+    secrets:
+      - laravel_app_key
+      - mysql_password
+      - redis_password
+      - smtp_password
+      - jwt_secret
+    ports:
+      - "8000:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cesizen-prod-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # Frontend Vue.js
+  frontend:
+    image: ghcr.io/OWNER/cesizen-frontend:latest
+    container_name: cesizen-prod-frontend
+    environment:
+      VITE_API_URL: https://${PROD_DOMAIN}/api
+      VITE_APP_ENV: production
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - cesizen-prod-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # Redis pour le cache et les sessions
+  redis:
+    image: redis:7-alpine
+    container_name: cesizen-prod-redis
+    command: redis-server --appendonly yes --requirepass $REDIS_PASSWORD
+    environment:
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+    volumes:
+      - redis_prod_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    secrets:
+      - redis_password
+    networks:
+      - cesizen-prod-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  # Traefik comme reverse proxy avec SSL
+  traefik:
+    image: traefik:v3.0
+    container_name: cesizen-prod-traefik
+    command:
+      - "--api.dashboard=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${PROD_DOMAIN}`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.frontend.service=frontend"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      
+      - "traefik.http.routers.backend.rule=Host(`${PROD_DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend.service=backend"
+      - "traefik.http.services.backend.loadbalancer.server.port=80"
+    networks:
+      - cesizen-prod-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  # Watchtower pour les mises à jour automatiques
+  watchtower:
+    image: containrrr/watchtower
+    container_name: cesizen-prod-watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_POLL_INTERVAL: 3600  # 1 heure
+      WATCHTOWER_CLEANUP: true
+      WATCHTOWER_INCLUDE_STOPPED: true
+      WATCHTOWER_LABEL_ENABLE: true
+      WATCHTOWER_NOTIFICATIONS: slack
+      WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL_FILE: /run/secrets/slack_webhook
+    secrets:
+      - slack_webhook
+    networks:
+      - cesizen-prod-network
+    restart: unless-stopped
+
+  # Monitoring avec Prometheus (optionnel)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cesizen-prod-prometheus
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - cesizen-prod-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Backup automatique
+  backup:
+    image: alpine:latest
+    container_name: cesizen-prod-backup
+    volumes:
+      - mysql_prod_data:/backup/mysql:ro
+      - backend_prod_storage:/backup/storage:ro
+      - ./scripts/backup.sh:/backup.sh
+    environment:
+      BACKUP_SCHEDULE: "0 2 * * *"  # 2h du matin tous les jours
+      S3_BUCKET: ${BACKUP_S3_BUCKET}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY_FILE: /run/secrets/aws_secret_key
+    secrets:
+      - aws_secret_key
+    networks:
+      - cesizen-prod-network
+    restart: unless-stopped
+    command: >
+      sh -c "
+        apk add --no-cache aws-cli dcron &&
+        echo '${BACKUP_SCHEDULE} /backup.sh' | crontab - &&
+        crond -f
+      "
+
+secrets:
+  laravel_app_key:
+    external: true
+  mysql_root_password:
+    external: true
+  mysql_password:
+    external: true
+  redis_password:
+    external: true
+  smtp_password:
+    external: true
+  jwt_secret:
+    external: true
+  slack_webhook:
+    external: true
+  aws_secret_key:
+    external: true
+
+volumes:
+  mysql_prod_data:
+    driver: local
+  redis_prod_data:
+    driver: local
+  backend_prod_storage:
+    driver: local
+  backend_prod_logs:
+    driver: local
+  traefik_letsencrypt:
+    driver: local
+  prometheus_data:
+    driver: local
+
+networks:
+  cesizen-prod-network:
+    driver: bridgetlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.

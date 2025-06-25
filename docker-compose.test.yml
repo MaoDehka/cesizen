@@ -1,0 +1,175 @@
+version: '3.8'
+
+services:
+  # Base de données MySQL pour les tests
+  mysql:
+    image: mysql:8.0
+    container_name: cesizen-test-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: test_root_password
+      MYSQL_DATABASE: cesizen_test
+      MYSQL_USER: cesizen_user
+      MYSQL_PASSWORD: test_password
+    volumes:
+      - mysql_test_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - cesizen-test-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Backend Laravel
+  backend:
+    image: ghcr.io/OWNER/cesizen-backend:latest
+    container_name: cesizen-test-backend
+    environment:
+      APP_ENV: testing
+      APP_DEBUG: false
+      APP_KEY: base64:${LARAVEL_APP_KEY}
+      APP_URL: http://${TEST_HOST}
+      
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: cesizen_test
+      DB_USERNAME: cesizen_user
+      DB_PASSWORD: test_password
+      
+      CACHE_DRIVER: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+      
+      JWT_SECRET: ${JWT_SECRET}
+      
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: warning
+    volumes:
+      - backend_test_storage:/var/www/html/storage
+    ports:
+      - "8000:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cesizen-test-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # Frontend Vue.js
+  frontend:
+    image: ghcr.io/OWNER/cesizen-frontend:latest
+    container_name: cesizen-test-frontend
+    environment:
+      VITE_API_URL: http://${TEST_HOST}/api
+      VITE_APP_ENV: testing
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - cesizen-test-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # Redis pour le cache et les sessions
+  redis:
+    image: redis:7-alpine
+    container_name: cesizen-test-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_test_data:/data
+    networks:
+      - cesizen-test-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx comme reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: cesizen-test-nginx
+    volumes:
+      - ./docker/nginx/test.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - cesizen-test-network
+    restart: unless-stopped
+
+  # Watchtower pour les mises à jour automatiques
+  watchtower:
+    image: containrrr/watchtower
+    container_name: cesizen-test-watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_POLL_INTERVAL: 120  # 2 minutes
+      WATCHTOWER_CLEANUP: true
+      WATCHTOWER_INCLUDE_STOPPED: true
+      WATCHTOWER_LABEL_ENABLE: true
+    networks:
+      - cesizen-test-network
+    restart: unless-stopped
+
+  # Tests automatisés avec Cypress
+  cypress:
+    image: cypress/included:latest
+    container_name: cesizen-test-cypress
+    environment:
+      CYPRESS_baseUrl: http://frontend
+    volumes:
+      - ./tests/e2e:/e2e
+      - ./cypress.config.js:/cypress.config.js
+    depends_on:
+      - frontend
+    networks:
+      - cesizen-test-network
+    profiles:
+      - testing
+    command: >
+      sh -c "
+        sleep 30 &&
+        cypress run --config video=false,screenshotOnRunFailure=false
+      "
+
+volumes:
+  mysql_test_data:
+    driver: local
+  redis_test_data:
+    driver: local
+  backend_test_storage:
+    driver: local
+
+networks:
+  cesizen-test-network:
+    driver: bridge
