@@ -39,10 +39,11 @@ jobs:
         run: |
           composer install --prefer-dist --no-progress --no-suggest --optimize-autoloader
 
-      - name: Copy .env file
+      - name: Copy .env file and inject JWT_SECRET
         working-directory: backend
         run: |
           cp .env.example .env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
           php artisan key:generate
 
       - name: Create SQLite database
