@@ -1,5 +1,5 @@
 # Multi-stage build pour optimiser la taille
-FROM node:20-alpine AS builder
+FROM node:20 AS builder
 
 LABEL org.opencontainers.image.source=https://github.com/OWNER/cesizen
 LABEL org.opencontainers.image.description="CESIZen Frontend - Application de santé mentale"
@@ -10,13 +10,15 @@ WORKDIR /app
 COPY package*.json ./
 
 # Installation des dépendances
-RUN npm ci --only=production
+RUN npm ci
 
 # Copie du code source
 COPY . .
 
 # Build de l'application
 RUN npm run build
+
+RUN rm -rf node_modules && npm ci --only=production
 
 # Image de production avec Nginx
 FROM nginx:alpine AS production
