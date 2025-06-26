@@ -17,6 +17,9 @@ LABEL org.opencontainers.image.version="1.0.0"
 
 # Installation des dépendances système
 RUN apk add --no-cache \
+    bash=5.1.16-r0 \
+    curl=7.83.1-r0 \
+    git=2.36.1-r0 \
     nginx \
     supervisor \
     sqlite-dev \
@@ -25,7 +28,6 @@ RUN apk add --no-cache \
     freetype-dev \
     zip \
     unzip \
-    curl \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) gd pdo pdo_sqlite pdo_mysql
 
