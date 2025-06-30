@@ -33,6 +33,7 @@ RUN sed -i 's/v3.22/edge/g' /etc/apk/repositories && \
     docker-php-ext-configure gd --with-freetype --with-jpeg && \
     docker-php-ext-install -j"$(nproc)" gd pdo pdo_sqlite pdo_mysql
 
+
 # Installation de Composer
 COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
 
