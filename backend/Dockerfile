@@ -21,8 +21,8 @@ RUN sed -i 's/v3.22/edge/g' /etc/apk/repositories && \
     apk add --no-cache \
         bash=5.2.37-r0 \
         curl=8.14.1-r2 \
-        git-2.50.0-r1 \
-        nginx-1.28.0-r4 \
+        git=2.50.0-r1 \
+        nginx=1.28.0-r4 \
         supervisor=4.2.5-r5 \
         sqlite-dev=3.50.2-r0 \
         libpng-dev=1.6.49-r0 \
