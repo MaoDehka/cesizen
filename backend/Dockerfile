@@ -9,27 +9,29 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 
-FROM php:8.2-fpm-alpine AS production
+FROM php:8.2-fpm-alpine3.22 AS production
 
 LABEL org.opencontainers.image.source=https://github.com/OWNER/cesizen
 LABEL org.opencontainers.image.description="CESIZen Backend - Application de santé mentale"
 LABEL org.opencontainers.image.version="1.0.0"
 
 # Installation des dépendances système
-RUN apk add --no-cache \
-    bash \
-    curl \
-    git \
-    nginx \
-    supervisor \
-    sqlite-dev \
-    libpng-dev \
-    libjpeg-turbo-dev \
-    freetype-dev \
-    zip \
-    unzip \
- && docker-php-ext-configure gd --with-freetype --with-jpeg \
- && docker-php-ext-install -j"$(nproc)" gd pdo pdo_sqlite pdo_mysql
+RUN sed -i 's/v3.22/edge/g' /etc/apk/repositories && \
+    apk update && \
+    apk add --no-cache \
+        bash \
+        curl \
+        git \
+        nginx \
+        supervisor \
+        sqlite-dev=3.46.0-r0 \
+        libpng-dev=1.6.43-r0 \
+        libjpeg-turbo-dev=3.0.2-r1 \
+        freetype-dev=2.13.3-r0 \
+        zip \
+        unzip && \
+    docker-php-ext-configure gd --with-freetype --with-jpeg && \
+    docker-php-ext-install -j"$(nproc)" gd pdo pdo_sqlite pdo_mysql
 
 # Installation de Composer
 COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
