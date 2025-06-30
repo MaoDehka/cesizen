@@ -21,14 +21,14 @@ RUN sed -i 's/v3.22/edge/g' /etc/apk/repositories && \
     apk add --no-cache \
         bash=5.2.37-r0 \
         curl=8.14.1-r2 \
-        git \
-        nginx \
+        git-2.50.0-r1 \
+        nginx-1.28.0-r4 \
         supervisor=4.2.5-r5 \
         sqlite-dev=3.50.2-r0 \
         libpng-dev=1.6.49-r0 \
         libjpeg-turbo-dev=3.1.1-r0 \
         freetype-dev=2.13.3-r0 \
-        zip \
+        zip=3.0-r13 \
         unzip=6.0-r16 && \
     docker-php-ext-configure gd --with-freetype --with-jpeg && \
     docker-php-ext-install -j"$(nproc)" gd pdo pdo_sqlite pdo_mysql
