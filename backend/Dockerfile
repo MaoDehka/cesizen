@@ -17,19 +17,19 @@ LABEL org.opencontainers.image.version="1.0.0"
 
 # Installation des dépendances système
 RUN apk add --no-cache \
-    bash=5.1.16-r0 \
-    curl=7.83.1-r0 \
-    git=2.36.1-r0 \
-    nginx=1.22.1-r0 \
-    supervisor=4.2.4-r0 \
-    sqlite-dev=3.38.5-r0 \
-    libpng-dev=1.6.37-r1 \
-    libjpeg-turbo-dev=2.1.3-r1 \
-    freetype-dev=2.12.1-r0 \
-    zip=3.0-r7 \
-    unzip=6.0-r9 \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j"$(nproc)" gd pdo pdo_sqlite pdo_mysql
+    bash=5.2.21-r0 \
+    curl=8.8.0-r0 \
+    git=2.45.1-r0 \
+    nginx=1.26.0-r4 \
+    supervisor=4.2.5-r5 \
+    sqlite-dev=3.46.0-r0 \
+    libpng-dev=1.6.43-r1 \
+    libjpeg-turbo-dev=3.0.2-r2 \
+    freetype-dev=2.13.2-r0 \
+    zip=3.0-r13 \
+    unzip=6.0-r15 \
+  && docker-php-ext-configure gd --with-freetype --with-jpeg \
+  && docker-php-ext-install -j"$(nproc)" gd pdo pdo_sqlite pdo_mysql
 
 # Installation de Composer
 COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
