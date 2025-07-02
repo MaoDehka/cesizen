@@ -145,7 +145,7 @@ jobs:
         id: meta-backend
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME_BACKEND }}
+          images: ${{ env.REGISTRY }}/maodehka/${{ env.IMAGE_NAME_BACKEND }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -155,7 +155,7 @@ jobs:
         id: meta-frontend
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME_FRONTEND }}
+          images: ${{ env.REGISTRY }}/maodehka/${{ env.IMAGE_NAME_FRONTEND }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -239,4 +239,3 @@ jobs:
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
             docker system prune -f
-            

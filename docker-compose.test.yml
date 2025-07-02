@@ -23,13 +23,13 @@ services:
 
   # Backend Laravel
   backend:
-    image: ghcr.io/OWNER/cesizen-backend:latest
+    image: ghcr.io/maodehka/cesizen-backend:latest
     container_name: cesizen-test-backend
     environment:
       APP_ENV: testing
       APP_DEBUG: false
       APP_KEY: base64:${LARAVEL_APP_KEY}
-      APP_URL: http://${TEST_HOST}
+      APP_URL: http://cesizen-test.duckdns.org
       
       DB_CONNECTION: mysql
       DB_HOST: mysql
@@ -75,10 +75,10 @@ services:
 
   # Frontend Vue.js
   frontend:
-    image: ghcr.io/OWNER/cesizen-frontend:latest
+    image: ghcr.io/maodehka/cesizen-frontend:latest
     container_name: cesizen-test-frontend
     environment:
-      VITE_API_URL: http://${TEST_HOST}/api
+      VITE_API_URL: http://cesizen-test.duckdns.org:8000/api
       VITE_APP_ENV: testing
     ports:
       - "8080:80"
