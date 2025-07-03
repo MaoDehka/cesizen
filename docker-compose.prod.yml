@@ -34,7 +34,7 @@ services:
     container_name: cesizen-prod-backend
     environment:
       APP_ENV: production
-      APP_DEBUG: false
+      APP_DEBUG: "false"
       APP_KEY: base64:${LARAVEL_APP_KEY}
       APP_URL: http://cesizen-prod.duckdns.org
       
@@ -164,9 +164,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       WATCHTOWER_POLL_INTERVAL: 3600  # 1 heure
-      WATCHTOWER_CLEANUP: true
-      WATCHTOWER_INCLUDE_STOPPED: true
-      WATCHTOWER_LABEL_ENABLE: true
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_INCLUDE_STOPPED: "true"
+      WATCHTOWER_LABEL_ENABLE: "true"
     networks:
       - cesizen-prod-network
     restart: unless-stopped
