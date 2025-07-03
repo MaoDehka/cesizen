@@ -60,7 +60,7 @@ services:
       LOG_LEVEL: warning
       
       # Sécurité
-      SESSION_SECURE_COOKIE: false
+      SESSION_SECURE_COOKIE: "false"
       SESSION_SAME_SITE: lax
     volumes:
       - backend_prod_storage:/var/www/html/storage
