@@ -242,3 +242,34 @@ jobs:
             docker compose -f docker-compose.prod.yml up -d
             docker system prune -f
             
+  # Déploiement en production (auto)
+  deploy-production-auto:
+    runs-on: ubuntu-latest
+    needs: [deploy-test]
+    environment:
+      name: production
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Deploy to Production via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/cesizen-prod
+            
+            # Backup avant déploiement
+            docker exec cesizen-prod-mysql mysqldump -u root -p$MYSQL_ROOT_PASSWORD cesizen_prod > backup_$(date +%Y%m%d_%H%M%S).sql
+            
+            # Mise à jour avec zero-downtime
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --force-recreate
+            
+            # Vérification health check
+            sleep 30
+            curl -f http://localhost/api/health || exit 1
+            
+            # Nettoyage
+            docker system prune -f
