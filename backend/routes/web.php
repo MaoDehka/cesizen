@@ -7,9 +7,9 @@ Route::get('/', function () {
 });
 
 Route::get('/reset-password/{token}', function ($token) {
-    return redirect()->to('https://cesizen-prod.duckdns.org/reset-password?token=' . $token);
+    return redirect()->to('http://cesizen-prod.chickenkiller.com/reset-password?token=' . $token);
 })->name('password.reset');
 
 Route::get('/password/reset', function () {
-    return redirect()->to('https://cesizen-prod.duckdns.org/forgot-password');
+    return redirect()->to('http://cesizen-prod.chickenkiller.com/forgot-password');
 })->name('password.request');

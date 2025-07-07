@@ -10,12 +10,20 @@ interface ApiOptions {
 // Function to get the appropriate base URL depending on the platform
 function getBaseUrl() {
   const isNative = Capacitor.isNativePlatform();
-  console.log(`Plateforme détectée: ${isNative ? 'Native' : 'Web'}`);
   
   if (isNative) {
-    return 'http://3.82.111.55:8000/api';
+    return 'http://cesizen-prod.chickenkiller.com:8000/api';
   } else {
-    return 'http://cesizen-prod.duckdns.org:8000/api';
+    // Déterminer l'environnement selon l'URL actuelle
+    const hostname = window.location.hostname;
+    
+    if (hostname.includes('cesizen-dev')) {
+      return 'http://cesizen-dev.chickenkiller.com:8000/api';
+    } else if (hostname.includes('cesizen-test')) {
+      return 'http://cesizen-test.chickenkiller.com:8000/api';
+    } else {
+      return 'http://cesizen-prod.chickenkiller.com:8000/api';
+    }
   }
 }
 

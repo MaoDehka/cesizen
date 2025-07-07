@@ -36,7 +36,7 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       APP_KEY: base64:${LARAVEL_APP_KEY}
-      APP_URL: http://cesizen-prod.duckdns.org
+      APP_URL: http://cesizen-prod.chickenkiller.com
       
       DB_CONNECTION: mysql
       DB_HOST: mysql
@@ -95,7 +95,7 @@ services:
     image: ghcr.io/maodehka/cesizen-frontend:latest
     container_name: cesizen-prod-frontend
     environment:
-      VITE_API_URL: http://cesizen-prod.duckdns.org:8000/api
+      VITE_API_URL: http://cesizen-prod.chickenkiller.com:8000/api
       VITE_APP_ENV: production
     ports:
       - "8080:80"

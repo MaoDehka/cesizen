@@ -31,7 +31,7 @@ services:
       APP_ENV: local
       APP_DEBUG: true
       APP_KEY: base64:${LARAVEL_APP_KEY}
-      APP_URL: http://cesizen-dev.duckdns.org
+      APP_URL: http://cesizen-dev.chickenkiller.com
       
       DB_CONNECTION: mysql
       DB_HOST: mysql
@@ -74,7 +74,7 @@ services:
     image: ghcr.io/maodehka/cesizen-frontend:develop
     container_name: cesizen-dev-frontend
     environment:
-      VITE_API_URL: http://cesizen-dev.duckdns.org:8000/api
+      VITE_API_URL: http://cesizen-dev.chickenkiller.com:8000/api
       VITE_APP_ENV: development
     ports:
       - "8080:80"
