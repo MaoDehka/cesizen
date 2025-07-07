@@ -31,6 +31,7 @@ services:
   # Backend Laravel
   backend:
     image: ghcr.io/maodehka/cesizen-backend:latest
+    platform: linux/amd64
     container_name: cesizen-prod-backend
     environment:
       APP_ENV: production
@@ -93,6 +94,7 @@ services:
   # Frontend Vue.js
   frontend:
     image: ghcr.io/maodehka/cesizen-frontend:latest
+    platform: linux/amd64
     container_name: cesizen-prod-frontend
     environment:
       VITE_API_URL: http://cesizen-prod.chickenkiller.com:8000/api
