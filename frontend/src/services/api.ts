@@ -13,9 +13,9 @@ function getBaseUrl() {
   console.log(`Plateforme détectée: ${isNative ? 'Native' : 'Web'}`);
   
   if (isNative) {
-    return 'http://10.176.130.248:8000/api';
+    return 'http://3.82.111.55:8000/api';
   } else {
-    return 'http://localhost:8000/api';
+    return 'http://cesizen-prod.duckdns.org:8000/api';
   }
 }
 
