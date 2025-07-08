@@ -93,6 +93,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_ALL_CODEBASE: false
           VALIDATE_DOCKERFILE_HADOLINT: true
+          HADOLINT_CONFIG_FILE: .hadolint.yaml
           VALIDATE_YAML: true
 
   # Job d'audit de sécurité
