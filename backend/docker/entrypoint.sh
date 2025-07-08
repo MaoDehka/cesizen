@@ -39,7 +39,12 @@ php artisan migrate --force
 # Seeders uniquement en développement ou si explicitement demandé
 if [ "$APP_ENV" = "local" ] || [ "$RUN_SEEDERS" = "true" ]; then
     echo "🌱 Exécution des seeders..."
-    php artisan db:seed --force
+    if php artisan migrate:status | grep -q "No migrations found"; then
+        echo "📊 Aucune migration trouvée, exécution des migrations..."
+        php artisan migrate --force || echo "⚠️ Les migrations ont échoué, mais on continue."
+    else
+        echo "✅ Les migrations sont déjà appliquées, rien à faire."
+    fi
 fi
 
 # Générer la clé JWT si elle n'existe pas
