@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+mkdir -p /var/log/supervisor
+chown www:www /var/log/supervisor
+
 echo "🚀 Démarrage de CESIZen Backend..."
 
 # Attendre que la base de données soit prête
