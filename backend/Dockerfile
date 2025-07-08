@@ -78,5 +78,5 @@ ENV DB_DATABASE=/var/www/html/database/database.sqlite
 
 EXPOSE 80
 
-ENTRYPOINT ["entrypoint"]
+ENTRYPOINT ["/usr/local/bin/entrypoint"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
