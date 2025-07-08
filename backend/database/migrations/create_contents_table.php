@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('contents', function (Blueprint $table) {
-            $table->id();
-            $table->string('page')->unique(); // Identificateur de la page (ex: 'home', 'about', etc.)
-            $table->string('title'); // Titre de la page
-            $table->longText('content'); // Contenu HTML de la page
-            $table->boolean('active')->default(true);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('contents')) {
+            Schema::create('contents', function (Blueprint $table) {
+                $table->id();
+                $table->string('page')->unique(); // Identificateur de la page (ex: 'home', 'about', etc.)
+                $table->string('title'); // Titre de la page
+                $table->longText('content'); // Contenu HTML de la page
+                $table->boolean('active')->default(true);
+                $table->timestamps();
+            });
+        }
     }
 
     /**

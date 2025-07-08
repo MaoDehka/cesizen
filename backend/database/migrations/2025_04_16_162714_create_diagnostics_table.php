@@ -11,17 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('diagnostics', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->integer('score_total');
-            $table->string('stress_level');
-            $table->dateTime('diagnostic_date');
-            $table->text('consequences')->nullable();
-            $table->text('advices')->nullable();
-            $table->boolean('saved')->default(false);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('diagnostics')) {
+            Schema::create('diagnostics', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->onDelete('cascade');
+                $table->integer('score_total');
+                $table->string('stress_level');
+                $table->dateTime('diagnostic_date');
+                $table->text('consequences')->nullable();
+                $table->text('advices')->nullable();
+                $table->boolean('saved')->default(false);
+                $table->timestamps();
+            });
+        }
     }
 
     /**

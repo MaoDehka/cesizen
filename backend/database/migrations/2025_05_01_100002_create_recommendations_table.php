@@ -11,15 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('recommendations', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('stress_level_id')->constrained()->cascadeOnDelete();
-            $table->string('description'); // Description de la recommandation
-            $table->text('details')->nullable(); // Détails supplémentaires
-            $table->integer('order')->default(0); // Ordre d'affichage
-            $table->boolean('active')->default(true); // Si cette recommandation est active
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('recommendations')) {
+            Schema::create('recommendations', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('stress_level_id')->constrained()->cascadeOnDelete();
+                $table->string('description'); // Description de la recommandation
+                $table->text('details')->nullable(); // Détails supplémentaires
+                $table->integer('order')->default(0); // Ordre d'affichage
+                $table->boolean('active')->default(true); // Si cette recommandation est active
+                $table->timestamps();
+            });
+        }
     }
 
     /**

@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('responses', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('question_id')->constrained()->onDelete('cascade');
-            $table->string('reponse');
-            $table->dateTime('date');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('responses')) {
+            Schema::create('responses', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->onDelete('cascade');
+                $table->foreignId('question_id')->constrained()->onDelete('cascade');
+                $table->string('reponse');
+                $table->dateTime('date');
+                $table->timestamps();
+            });
+        }
     }
 
     /**
