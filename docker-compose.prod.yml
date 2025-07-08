@@ -97,7 +97,7 @@ services:
     platform: linux/amd64
     container_name: cesizen-prod-frontend
     environment:
-      VITE_API_URL: http://cesizen-prod.chickenkiller.com:8000/api
+      VITE_API_URL: http://cesizen-prod.chickenkiller.com/api
       VITE_APP_ENV: production
     ports:
       - "8080:80"
