@@ -18,8 +18,6 @@ COPY . .
 # Build de l'application
 RUN npm run build
 
-RUN rm -rf node_modules && npm ci --only=production
-
 # Image de production avec Nginx
 FROM nginx:alpine AS production
 
@@ -34,6 +32,7 @@ COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/default.conf /etc/nginx/conf.d/default.conf
 
 # Script pour injecter les variables d'environnement au runtime
+# CORRECTION: Copier vers le bon répertoire et avec le bon nom
 COPY docker/entrypoint.sh /docker-entrypoint.d/40-inject-env-vars.sh
 RUN chmod +x /docker-entrypoint.d/40-inject-env-vars.sh
 

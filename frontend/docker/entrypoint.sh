@@ -4,27 +4,25 @@ set -e
 echo "🎨 Démarrage de CESIZen Frontend..."
 
 # Fonction pour remplacer les variables d'environnement dans les fichiers JS
-replace_env_vars() {
-    echo "🔧 Injection des variables d'environnement..."
-    
-    # Fichiers à traiter
-    find /usr/share/nginx/html -name "*.js" -type f -exec sed -i "s|VITE_API_URL_PLACEHOLDER|${VITE_API_URL:-https://cesizen-prod.chickenkiller.com/api}|g" {} \;
-    find /usr/share/nginx/html -name "*.js" -type f -exec sed -i "s|VITE_APP_ENV_PLACEHOLDER|${VITE_APP_ENV:-production}|g" {} \;
-    
-    echo "✅ Variables d'environnement injectées!"
-}
+echo "🔧 Injection des variables d'environnement..."
 
-# Injection des variables d'environnement
-replace_env_vars
+# Variables par défaut
+VITE_API_URL_DEFAULT="https://cesizen-prod.chickenkiller.com/api"
+VITE_APP_ENV_DEFAULT="production"
 
-# Configuration nginx dynamique selon l'environnement
-if [ "$VITE_APP_ENV" = "development" ]; then
-    echo "🛠️  Configuration développement détectée"
-    # Désactiver le cache pour le développement
-    sed -i 's/expires 1y;/expires -1;/g' /etc/nginx/conf.d/default.conf
-fi
+# Utiliser les valeurs par défaut si les variables ne sont pas définies
+API_URL=${VITE_API_URL:-$VITE_API_URL_DEFAULT}
+APP_ENV=${VITE_APP_ENV:-$VITE_APP_ENV_DEFAULT}
 
+echo "Variables utilisées:"
+echo "VITE_API_URL: $API_URL"
+echo "VITE_APP_ENV: $APP_ENV"
+
+# Remplacer les placeholders dans les fichiers JS
+find /usr/share/nginx/html -name "*.js" -type f -exec sed -i "s|VITE_API_URL_PLACEHOLDER|$API_URL|g" {} \; 2>/dev/null || true
+find /usr/share/nginx/html -name "*.js" -type f -exec sed -i "s|VITE_APP_ENV_PLACEHOLDER|$APP_ENV|g" {} \; 2>/dev/null || true
+
+echo "✅ Variables d'environnement injectées!"
 echo "✅ CESIZen Frontend prêt!"
 
-# Continuer avec l'entrée standard de Nginx
-exec "$@"
+# Ne pas executer de commande, laisser nginx démarrer normalement
