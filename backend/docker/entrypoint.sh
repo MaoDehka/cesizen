@@ -10,6 +10,17 @@ if [ "$DB_CONNECTION" = "mysql" ]; then
         sleep 1
     done
     echo "✅ Base de données MySQL prête!"
+
+    # Vérification globale : est-ce qu'il y a déjà au moins une table ?
+    TABLE_COUNT=$(mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USERNAME" -p"$DB_PASSWORD" -D"$DB_DATABASE" -se "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '$DB_DATABASE';")
+    
+    if [ "$TABLE_COUNT" -gt 0 ]; then
+        echo "⚠️ La base '$DB_DATABASE' contient déjà des tables ($TABLE_COUNT). Migration ignorée."
+        RUN_MIGRATIONS=false
+    else
+        echo "✅ La base '$DB_DATABASE' est vide. Les migrations vont être exécutées."
+        RUN_MIGRATIONS=true
+    fi
 fi
 
 # Créer le répertoire de stockage s'il n'existe pas
@@ -32,9 +43,13 @@ if [ "$APP_ENV" = "production" ]; then
     php artisan view:cache
 fi
 
-# Exécuter les migrations
-echo "📊 Exécution des migrations..."
-php artisan migrate --force
+# Exécuter les migrations seulement si la base est vide
+if [ "$RUN_MIGRATIONS" = true ]; then
+    echo "📊 Exécution des migrations..."
+    php artisan migrate --force
+else
+    echo "📊 Migrations sautées car la base n'est pas vide."
+fi
 
 # Seeders uniquement en développement ou si explicitement demandé
 if [ "$APP_ENV" = "local" ] || [ "$RUN_SEEDERS" = "true" ]; then
