@@ -12,17 +12,17 @@ function getBaseUrl() {
   const isNative = Capacitor.isNativePlatform();
   
   if (isNative) {
-    return 'https://cesizen-prod.chickenkiller.com:8000/api';
+    return 'https://cesizen-prod.chickenkiller.com/api';
   } else {
     // Déterminer l'environnement selon l'URL actuelle
     const hostname = window.location.hostname;
     
     if (hostname.includes('cesizen-dev')) {
-      return 'https://cesizen-dev.chickenkiller.com:8000/api';
+      return 'https://cesizen-dev.chickenkiller.com/api';
     } else if (hostname.includes('cesizen-test')) {
-      return 'https://cesizen-test.chickenkiller.com:8000/api';
+      return 'https://cesizen-test.chickenkiller.com/api';
     } else {
-      return 'https://cesizen-prod.chickenkiller.com:8000/api';
+      return 'https://cesizen-prod.chickenkiller.com/api';
     }
   }
 }
