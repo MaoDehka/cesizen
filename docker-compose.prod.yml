@@ -76,7 +76,7 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
       start_period: 60s
     deploy:
       resources:
@@ -104,7 +104,8 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 30s
     deploy:
       resources:
         limits:
@@ -142,12 +143,35 @@ services:
     container_name: cesizen-prod-nginx
     volumes:
       - ./backend/docker/nginx/prod.conf:/etc/nginx/conf.d/default.conf
+      # Ajout du volume pour les certificats SSL si nécessaire
+      # - ./certbot/conf:/etc/letsencrypt
+      # - ./certbot/www:/var/www/certbot
     ports:
       - "80:80"
       - "443:443"
     depends_on:
       - backend
       - frontend
+    networks:
+      - cesizen-prod-network
+    restart: unless-stopped
+
+  # Service de backup automatique (optionnel)
+  backup:
+    image: alpine:latest
+    container_name: cesizen-prod-backup
+    volumes:
+      - mysql_prod_data:/backup/mysql:ro
+      - backend_prod_storage:/backup/storage:ro
+      - redis_prod_data:/backup/redis:ro
+    environment:
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 2 * * *}
+    command: >
+      sh -c "
+        apk add --no-cache dcron &&
+        echo '${BACKUP_SCHEDULE:-0 2 * * *} tar czf /backup/backup-$$(date +%Y%m%d_%H%M%S).tar.gz /backup/mysql /backup/storage /backup/redis' | crontab - &&
+        crond -f
+      "
     networks:
       - cesizen-prod-network
     restart: unless-stopped
@@ -166,6 +190,11 @@ services:
     networks:
       - cesizen-prod-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "watchtower", "--help"]
+      interval: 300s
+      timeout: 10s
+      retries: 3
 
 volumes:
   mysql_prod_data:

@@ -1,3 +1,4 @@
+#!/bin/sh
 set -e
 
 echo "🎨 Démarrage de CESIZen Frontend..."
@@ -7,7 +8,7 @@ replace_env_vars() {
     echo "🔧 Injection des variables d'environnement..."
     
     # Fichiers à traiter
-    find /usr/share/nginx/html -name "*.js" -type f -exec sed -i "s|VITE_API_URL_PLACEHOLDER|${VITE_API_URL:-http://cesizen-prod.chickenkiller.com:8000/api}|g" {} \;
+    find /usr/share/nginx/html -name "*.js" -type f -exec sed -i "s|VITE_API_URL_PLACEHOLDER|${VITE_API_URL:-https://cesizen-prod.chickenkiller.com/api}|g" {} \;
     find /usr/share/nginx/html -name "*.js" -type f -exec sed -i "s|VITE_APP_ENV_PLACEHOLDER|${VITE_APP_ENV:-production}|g" {} \;
     
     echo "✅ Variables d'environnement injectées!"
@@ -26,4 +27,4 @@ fi
 echo "✅ CESIZen Frontend prêt!"
 
 # Continuer avec l'entrée standard de Nginx
-exec nginx -g 'daemon off;'
+exec "$@"
