@@ -28,7 +28,8 @@ RUN apk update && \
         libjpeg-turbo-dev \
         freetype-dev \
         zip \
-        unzip && \
+        unzip \
+        mysql-client && \
     docker-php-ext-configure gd --with-freetype --with-jpeg && \
     docker-php-ext-install -j"$(nproc)" gd pdo pdo_sqlite pdo_mysql
 
