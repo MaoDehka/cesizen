@@ -21,15 +21,19 @@ function getBaseUrl() {
       return 'https://cesizen-dev.chickenkiller.com/api';
     } else if (hostname.includes('cesizen-test')) {
       return 'https://cesizen-test.chickenkiller.com/api';
+    } else if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+      return 'http://localhost:8000/api';
     } else {
-      return 'https://cesizen-prod.chickenkiller.com/api';
+      // Pour la production, utiliser un chemin relatif qui sera géré par le proxy Nginx
+      return '/api';
     }
   }
 }
 
 class ApiService {
   private async request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
-    const url = `${getBaseUrl()}${endpoint}`;
+    const baseUrl = getBaseUrl();
+    const url = `${baseUrl}${endpoint}`;
     console.log(`Envoi de la requête à: ${url}`, { method: options.method || 'GET' });
 
     // Ajouter les headers par défaut
@@ -49,6 +53,8 @@ class ApiService {
     const fetchOptions: RequestInit = {
       method: options.method || 'GET',
       headers,
+      // Ajout de credentials pour les cookies de session si nécessaire
+      credentials: 'same-origin',
     };
     
     // Ajouter le body si nécessaire
@@ -92,6 +98,13 @@ class ApiService {
       if (!response.ok) {
         let errorMessage = 'Une erreur inconnue est survenue';
         let errorDetails = '';
+        
+        // Gérer spécifiquement l'erreur 502 Bad Gateway
+        if (response.status === 502) {
+          errorMessage = 'Service temporairement indisponible. Veuillez réessayer dans quelques instants.';
+          console.error('Erreur 502 Bad Gateway - Problème de connexion avec le backend');
+          throw new Error(errorMessage);
+        }
         
         try {
           // Essayer de parser le texte comme JSON pour extraire un message d'erreur
