@@ -57,6 +57,7 @@ RUN chown -R www:www /var/www/html \
 # Configuration Nginx
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf
+COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 
 # Configuration PHP-FPM
 COPY docker/php/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
