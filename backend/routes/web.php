@@ -13,3 +13,11 @@ Route::get('/reset-password/{token}', function ($token) {
 Route::get('/password/reset', function () {
     return redirect()->to('http://cesizen-prod.chickenkiller.com/forgot-password');
 })->name('password.request');
+
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'healthy',
+        'timestamp' => now()->toISOString(),
+        'service' => 'cesizen-backend'
+    ]);
+});
