@@ -1,3 +1,5 @@
+// frontend/src/services/api.ts - Version mise à jour pour HTTPS
+
 import jwtConfig from '../config/jwt';
 import { Capacitor } from '@capacitor/core';
 
@@ -16,15 +18,19 @@ function getBaseUrl() {
   } else {
     // Déterminer l'environnement selon l'URL actuelle
     const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
     
-    if (hostname.includes('cesizen-dev')) {
+    // Forcer HTTPS en production
+    if (hostname.includes('cesizen-prod.chickenkiller.com')) {
+      return 'https://cesizen-prod.chickenkiller.com/api';
+    } else if (hostname.includes('cesizen-dev')) {
       return 'https://cesizen-dev.chickenkiller.com/api';
     } else if (hostname.includes('cesizen-test')) {
       return 'https://cesizen-test.chickenkiller.com/api';
     } else if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
       return 'http://localhost:8000/api';
     } else {
-      // Pour la production, utiliser un chemin relatif qui sera géré par le proxy Nginx
+      // Pour la production, utiliser HTTPS avec un chemin relatif
       return '/api';
     }
   }
@@ -55,6 +61,8 @@ class ApiService {
       headers,
       // Ajout de credentials pour les cookies de session si nécessaire
       credentials: 'same-origin',
+      // Mode CORS pour les requêtes cross-origin
+      mode: 'cors',
     };
     
     // Ajouter le body si nécessaire
@@ -106,6 +114,13 @@ class ApiService {
           throw new Error(errorMessage);
         }
         
+        // Gérer les erreurs SSL/TLS
+        if (response.status === 0) {
+          errorMessage = 'Erreur de connexion sécurisée. Vérifiez votre connexion HTTPS.';
+          console.error('Erreur SSL/TLS - Problème de certificat ou de connexion sécurisée');
+          throw new Error(errorMessage);
+        }
+        
         try {
           // Essayer de parser le texte comme JSON pour extraire un message d'erreur
           const errorData = JSON.parse(responseText);
@@ -146,6 +161,12 @@ class ApiService {
         throw new Error('La réponse du serveur n\'est pas au format JSON valide');
       }
     } catch (error) {
+      // Gérer les erreurs de réseau et SSL/TLS
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.error('Erreur de réseau ou SSL/TLS:', error);
+        throw new Error('Erreur de connexion. Vérifiez votre connexion internet et les certificats SSL.');
+      }
+      
       if (error instanceof Error) {
         throw error;
       }
