@@ -1,0 +1,28 @@
+name: Gestion des tickets Gestsup
+
+on:
+  pull_request:
+    types: [opened, closed]
+  push:
+    branches: [main, develop]
+
+jobs:
+  update-ticket-status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract ticket ID from branch
+        id: ticket
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+          if [[ $BRANCH_NAME =~ GEST-([0-9]+) ]]; then
+            echo "ticket_id=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Update ticket status
+        if: steps.ticket.outputs.ticket_id
+        run: |
+          curl -X PATCH \
+            -H "Authorization: Bearer ${{ secrets.GESTSUP_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"status": "en_test"}' \
+            "${{ secrets.GESTSUP_API_URL }}/tickets/${{ steps.ticket.outputs.ticket_id }}"

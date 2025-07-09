@@ -1,0 +1,9 @@
+RewriteEngine On # enable rewrite apache module 
+RewriteRule ^ticket/findByUser ticket.php [NC,L]
+RewriteRule ^ticket/type/ ticket_type.php
+RewriteRule ^ticket/category/ ticket_category.php
+RewriteRule ^ticket/subcat/ ticket_subcat.php
+RewriteRule ^ticket/place/ ticket_place.php
+RewriteRule ^ticket/(.*)$ ticket.php?id=$1
+RewriteRule ^ticket/ ticket.php
+RewriteRule ^user/(.*)$ user.php?user_id=$1

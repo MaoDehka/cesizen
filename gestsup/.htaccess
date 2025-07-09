@@ -1,0 +1,8 @@
+ErrorDocument 404 /error/404.html
+Options -Indexes
+<Files "composer.json">
+    Require all denied
+</Files>
+<Files "composer.lock">
+    Require all denied
+</Files>
