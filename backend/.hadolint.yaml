@@ -16,6 +16,7 @@ trusted-registries:
   - docker.io
   - ghcr.io
 
+
 # Règles strictes seulement pour nos Dockerfiles
 strict-labels: false
 disable-ignore-pragma: false
