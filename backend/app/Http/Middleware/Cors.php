@@ -22,7 +22,7 @@ class Cors
         //     ->header('Access-Control-Allow-Headers', '*');
 
         if ($request->is('api/resources/*/download')) {
-            return $next($request); // skip le middleware
+            return $next($request);
         }
 
         if ($request->getMethod() === "OPTIONS") {

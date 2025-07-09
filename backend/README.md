@@ -1,61 +1,472 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# CESIZen Backend - API Laravel
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+API REST robuste pour l'application CESIZen, construite avec Laravel 12 et intégrant l'authentification JWT, la gestion des rôles et une architecture modulaire.
 
-## About Laravel
+## 🔧 Stack Technique
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Framework** : Laravel 12.x
+- **PHP** : 8.2+
+- **Base de données** : MySQL 8.0 / SQLite (dev)
+- **Authentification** : JWT (tymon/jwt-auth 2.2)
+- **Cache** : Redis 7
+- **File d'attente** : Redis
+- **Serveur Web** : Nginx + PHP-FPM
+- **Conteneurisation** : Docker multi-stage
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📁 Structure du Projet
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```
+backend/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   └── API/          # Contrôleurs API
+│   │   ├── Middleware/       # Middlewares personnalisés
+│   │   └── Kernel.php
+│   ├── Models/               # Modèles Eloquent
+│   ├── Providers/            # Service providers
+│   └── Services/             # Services métier
+├── config/                   # Configuration Laravel
+├── database/
+│   ├── factories/            # Factories pour tests
+│   ├── migrations/           # Migrations base de données
+│   └── seeders/              # Données de base
+├── docker/                   # Configuration Docker
+│   ├── nginx/                # Config Nginx
+│   ├── php/                  # Config PHP-FPM
+│   └── supervisor/           # Config Supervisor
+├── routes/
+│   ├── api.php               # Routes API
+│   └── web.php               # Routes web
+└── storage/                  # Stockage & logs
+```
 
-## Learning Laravel
+## 🚀 Installation & Configuration
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Développement Local
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+1. **Prérequis**
+   ```bash
+   # Avec Docker (recommandé)
+   docker --version
+   docker-compose --version
+   
+   # Ou installation locale
+   php --version  # 8.2+
+   composer --version
+   mysql --version # 8.0+
+   ```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+2. **Installation**
+   ```bash
+   # Cloner et installer dépendances
+   git clone <repo-url>
+   cd cesizen/backend
+   composer install
+   
+   # Configuration environnement
+   cp .env.example .env
+   php artisan key:generate
+   php artisan jwt:secret
+   ```
 
-## Laravel Sponsors
+3. **Base de données**
+   ```bash
+   # Créer la base de données
+   touch database/database.sqlite  # SQLite (dev)
+   # ou configurer MySQL dans .env
+   
+   # Exécuter migrations
+   php artisan migrate --seed
+   ```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+4. **Lancement**
+   ```bash
+   # Serveur de développement
+   php artisan serve
+   # API accessible sur http://localhost:8000
+   ```
 
-### Premium Partners
+### Avec Docker
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development/)**
-- **[Active Logic](https://activelogic.com)**
+```bash
+# Construction et lancement
+docker-compose up -d backend
 
-## Contributing
+# Commandes utiles
+docker-compose exec backend php artisan migrate
+docker-compose exec backend php artisan test
+docker-compose logs -f backend
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 📊 Modèle de Données
 
-## Code of Conduct
+### Entités Principales
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```php
+// Utilisateurs et rôles
+User -> Role (belongsTo)
+User -> Diagnostic[] (hasMany)
+User -> Response[] (hasMany)
 
-## Security Vulnerabilities
+// Questionnaires et questions
+Questionnaire -> Question[] (hasMany)
+Question -> Response[] (hasMany)
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+// Diagnostics
+Diagnostic -> User (belongsTo)
+Diagnostic -> Questionnaire (belongsTo)
 
-## License
+// Niveaux de stress et recommandations
+StressLevel -> Recommendation[] (hasMany)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+// Contenu managé
+Content (page, title, content, active)
+```
+
+### Migrations Principales
+
+- `2025_04_16_162711_create_roles_table.php`
+- `2025_04_16_162713_create_questionnaires_table.php`
+- `2025_04_16_162714_create_diagnostics_table.php`
+- `2025_05_01_100003_create_stress_levels_table.php`
+- `create_contents_table.php`
+
+## 🔐 Authentification JWT
+
+### Configuration
+
+```php
+// config/jwt.php
+'ttl' => env('JWT_TTL', 60),           // Durée de vie (minutes)
+'refresh_ttl' => env('JWT_REFRESH_TTL', 20160), // Refresh TTL
+'algo' => env('JWT_ALGO', 'HS256'),    // Algorithme
+```
+
+### Utilisation
+
+```php
+// Connexion
+POST /api/login
+{
+    "email": "user@cesizen.com",
+    "password": "password123"
+}
+
+// Réponse
+{
+    "user": {...},
+    "token": "eyJ0eXAiOiJKV1Q...",
+    "token_type": "bearer",
+    "expires_in": 3600
+}
+
+// Header requis pour routes protégées
+Authorization: Bearer {token}
+```
+
+## 🛠️ API Endpoints
+
+### Authentification
+```http
+POST   /api/register              # Inscription
+POST   /api/login                 # Connexion
+POST   /api/logout                # Déconnexion
+POST   /api/refresh-token         # Renouveler token
+GET    /api/user                  # Profil utilisateur
+POST   /api/reset-password        # Changer mot de passe
+```
+
+### Questionnaires
+```http
+GET    /api/questionnaires        # Liste questionnaires
+GET    /api/questionnaires/{id}   # Détail questionnaire
+POST   /api/questionnaires        # Créer questionnaire (admin)
+PUT    /api/questionnaires/{id}   # Modifier questionnaire (admin)
+DELETE /api/questionnaires/{id}   # Supprimer questionnaire (admin)
+```
+
+### Diagnostics
+```http
+GET    /api/diagnostics           # Historique utilisateur
+GET    /api/diagnostics/{id}      # Détail diagnostic
+POST   /api/diagnostics           # Créer diagnostic
+PUT    /api/diagnostics/{id}      # Modifier diagnostic
+POST   /api/diagnostics/{id}/save # Sauvegarder diagnostic
+DELETE /api/diagnostics/{id}      # Supprimer diagnostic
+```
+
+### Administration
+```http
+GET    /api/admin/statistics      # Statistiques globales
+GET    /api/admin/diagnostics     # Tous les diagnostics
+GET    /api/admin/stress-levels   # Niveaux de stress
+POST   /api/admin/stress-levels   # Créer niveau
+PUT    /api/admin/stress-levels/{id} # Modifier niveau
+DELETE /api/admin/stress-levels/{id} # Supprimer niveau
+```
+
+### Contenu
+```http
+GET    /api/contents/{page}       # Contenu par page (public)
+GET    /api/admin/contents        # Tous contenus (admin)
+PUT    /api/admin/contents/{id}   # Modifier contenu (admin)
+```
+
+## 🧪 Tests
+
+### Exécution des Tests
+
+```bash
+# Tous les tests
+php artisan test
+
+# Tests spécifiques
+php artisan test --filter=AuthTest
+php artisan test tests/Feature/DiagnosticTest.php
+
+# Coverage
+php artisan test --coverage
+```
+
+### Structure des Tests
+
+```
+tests/
+├── Feature/                 # Tests d'intégration
+│   ├── AuthTest.php
+│   ├── DiagnosticTest.php
+│   └── QuestionnaireTest.php
+└── Unit/                    # Tests unitaires
+    ├── UserTest.php
+    └── StressLevelTest.php
+```
+
+## 📈 Seeders & Données de Base
+
+### Données Initialisées
+
+```bash
+php artisan db:seed
+```
+
+- **Rôles** : admin, user
+- **Utilisateurs** : admin@cesizen.com, user@cesizen.com
+- **Questionnaire** : Échelle Holmes et Rahe (43 questions)
+- **Niveaux de stress** : Faible (0-149), Modéré (150-300), Élevé (301+)
+- **Recommandations** : Personnalisées par niveau
+- **Contenus** : Pages accueil, menu, footer
+
+### Questionnaire Holmes et Rahe
+
+```php
+// Exemples d'événements avec scores
+[
+    ['Mort du conjoint', 100],
+    ['Divorce', 73],
+    ['Séparation des époux', 65],
+    ['Blessure corporelle ou maladie', 53],
+    ['Mariage', 50],
+    // ... 38 autres événements
+]
+```
+
+## 🔧 Configuration Docker
+
+### Dockerfile Multi-stage
+
+```dockerfile
+# Builder stage
+FROM composer:2.6 AS composer-builder
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader
+
+# Production stage
+FROM php:8.2-fpm-alpine3.18
+# Installation dépendances, configuration Nginx/PHP-FPM
+```
+
+### Services Conteneurisés
+
+- **PHP-FPM** : Application Laravel
+- **Nginx** : Serveur web reverse proxy
+- **Supervisor** : Gestion processus (PHP-FPM + Nginx + Queue)
+- **Laravel Queue Worker** : Traitement tâches asynchrones
+
+## 🚀 Déploiement
+
+### Variables d'Environnement
+
+```bash
+# Application
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://cesizen-prod.chickenkiller.com
+
+# Base de données
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_DATABASE=cesizen_prod
+DB_USERNAME=cesizen_user
+DB_PASSWORD=***
+
+# JWT
+JWT_SECRET=***
+
+# Cache & Sessions
+CACHE_DRIVER=redis
+SESSION_DRIVER=redis
+REDIS_HOST=redis
+
+# Sécurité HTTPS
+SESSION_SECURE_COOKIE=true
+SESSION_SAME_SITE=lax
+```
+
+### Commandes de Déploiement
+
+```bash
+# Optimisations production
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# Migrations
+php artisan migrate --force
+
+# Queue workers
+php artisan queue:work --tries=3
+```
+
+## 📊 Monitoring & Logs
+
+### Logs Laravel
+
+```bash
+# Localisation
+storage/logs/laravel.log
+
+# Niveaux configurables
+LOG_CHANNEL=daily
+LOG_LEVEL=warning  # error, warning, info, debug
+```
+
+### Health Checks
+
+```http
+GET /health              # Statut général
+GET /ssl-check          # Vérification SSL
+```
+
+### Métriques Surveillées
+
+- Temps de réponse API
+- Erreurs 4xx/5xx
+- Usage mémoire PHP
+- Connexions base de données
+- Queue jobs en attente
+
+## 🛡️ Sécurité
+
+### Mesures Implémentées
+
+- **Authentification JWT** avec refresh tokens
+- **Validation stricte** des entrées (FormRequest)
+- **Protection CSRF** pour routes web
+- **Rate limiting** sur routes API
+- **Chiffrement bcrypt** pour mots de passe
+- **Headers sécurité** (HSTS, CSP, etc.)
+- **Validation rôles** sur routes admin
+
+### Middleware de Sécurité
+
+```php
+// app/Http/Middleware/
+├── Cors.php              # Gestion CORS
+├── JWTAuthenticate.php   # Auth JWT
+└── HandleCors.php        # Headers sécurité
+```
+
+## 🔄 Performance
+
+### Optimisations
+
+- **Cache Redis** pour sessions/config
+- **Eager loading** relations Eloquent
+- **Indexes base de données** sur clés étrangères
+- **Compression Gzip** réponses
+- **OpCache PHP** activé
+- **Connection pooling** MySQL
+
+### Monitoring
+
+```bash
+# Performance routes
+php artisan route:list --compact
+# Queries lentes
+php artisan db:monitor
+# Cache stats
+php artisan cache:table
+```
+
+## 🤝 Contribution
+
+### Standards de Code
+
+- **PSR-12** - Standard de code PHP
+- **Laravel Pint** - Formatage automatique
+- **PHPStan** - Analyse statique (niveau 8)
+
+### Workflow
+
+```bash
+# Tests avant commit
+php artisan test
+php artisan pint --test
+vendor/bin/phpstan analyse
+
+# Migrations
+php artisan make:migration create_table_name
+php artisan make:model ModelName -mfc
+```
+
+## 🆘 Dépannage
+
+### Problèmes Courants
+
+```bash
+# Erreur permissions storage
+chmod -R 755 storage bootstrap/cache
+chown -R www-data:www-data storage
+
+# JWT secret manquant
+php artisan jwt:secret --force
+
+# Cache corrompus
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+
+# Migration en échec
+php artisan migrate:rollback
+php artisan migrate --step
+```
+
+### Debug
+
+```bash
+# Mode debug
+APP_DEBUG=true
+LOG_LEVEL=debug
+
+# Queries SQL
+DB_LOG_QUERIES=true
+
+# Profiling
+php artisan debugbar:publish
+```
+
+---
+
+*Pour plus d'informations, consulter la [documentation Laravel officielle](https://laravel.com/docs) et le [README principal](../README.md).*
