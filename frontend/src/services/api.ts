@@ -9,7 +9,6 @@ interface ApiOptions {
   body?: any;
 }
 
-// Function to get the appropriate base URL depending on the platform
 function getBaseUrl() {
   const isNative = Capacitor.isNativePlatform();
   
