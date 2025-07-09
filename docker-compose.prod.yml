@@ -12,6 +12,7 @@ services:
       MYSQL_PASSWORD: prod_password_secure
     volumes:
       - mysql_prod_data:/var/lib/mysql
+      - ./docker/mysql/init-gestsup.sql:/docker-entrypoint-initdb.d/02-gestsup.sql
     networks:
       - cesizen-prod-network
     restart: unless-stopped
@@ -44,6 +45,9 @@ services:
       DB_USERNAME: cesizen_user
       DB_PASSWORD: prod_password_secure
       
+      GESTSUP_DB_NAME: gestsup_cesizen
+      GESTSUP_URL: https://cesizen-prod.chickenkiller.com/tickets
+
       CACHE_DRIVER: redis
       SESSION_DRIVER: redis
       QUEUE_CONNECTION: redis
@@ -147,6 +151,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/ssl-params.conf:/etc/nginx/ssl-params.conf
       - ./nginx/certbot:/var/www/certbot
+      - ./tickets:/var/www/tickets
       - certbot_www:/var/www/certbot
     ports:
       - "80:80"

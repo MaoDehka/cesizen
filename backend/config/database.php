@@ -171,4 +171,16 @@ return [
 
     ],
 
+    'gestsup' => [
+        'driver' => 'mysql',
+        'host' => env('DB_HOST', 'mysql'),
+        'database' => env('GESTSUP_DB_NAME', 'gestsup_cesizen'),
+        'username' => env('DB_USERNAME', 'cesizen_user'),
+        'password' => env('DB_PASSWORD'),
+        'charset' => 'utf8mb4',
+        'collation' => 'utf8mb4_unicode_ci',
+        'prefix' => '',
+        'strict' => true,
+        'engine' => null,
+    ],
 ];

@@ -2,57 +2,65 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class GestSupService
 {
-    private $apiUrl;
-    private $apiKey;
-    
-    public function __construct()
+    private function getGestSupDB()
     {
-        $this->apiUrl = config('services.gestsup.api_url');
-        $this->apiKey = config('services.gestsup.api_key');
+        // Connexion directe à la base Gestsup
+        return DB::connection('gestsup');
     }
     
     public function createTicket($data)
     {
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->apiKey,
-            'Content-Type' => 'application/json'
-        ])->post($this->apiUrl . '/tickets', [
-            'title' => $data['title'],
-            'description' => $data['description'],
-            'type' => $data['type'],
-            'priority' => $data['priority'],
-            'project_id' => config('services.gestsup.project_id')
-        ]);
-        
-        if ($response->successful()) {
-            return $response->json();
+        try {
+            // Insérer directement dans la base Gestsup
+            $ticketId = $this->getGestSupDB()->table('tickets')->insertGetId([
+                'title' => $data['title'],
+                'description' => $data['description'],
+                'type' => strtoupper($data['type']),
+                'priority' => strtoupper($data['priority']),
+                'creator_id' => $data['creator_id'] ?? 1,
+                'gestsup_id' => 'GEST-' . str_pad(time() % 10000, 4, '0', STR_PAD_LEFT),
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+            
+            return [
+                'id' => $ticketId,
+                'status' => 'created',
+                'url' => config('app.url') . '/tickets/view.php?id=' . $ticketId
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Erreur création ticket Gestsup: ' . $e->getMessage());
+            throw $e;
         }
-        
-        throw new \Exception('Erreur lors de la création du ticket Gestsup');
     }
     
     public function updateTicketStatus($ticketId, $status)
     {
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->apiKey
-        ])->patch($this->apiUrl . "/tickets/{$ticketId}", [
-            'status' => $status
-        ]);
-        
-        return $response->successful();
+        return $this->getGestSupDB()->table('tickets')
+            ->where('id', $ticketId)
+            ->update([
+                'status' => $status,
+                'updated_at' => now()
+            ]);
     }
     
     public function getTicketMetrics()
     {
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->apiKey
-        ])->get($this->apiUrl . '/analytics/tickets');
+        $db = $this->getGestSupDB();
         
-        return $response->successful() ? $response->json() : null;
+        return [
+            'total_tickets' => $db->table('tickets')->count(),
+            'open_tickets' => $db->table('tickets')->whereNotIn('status', ['RESOLU', 'FERME'])->count(),
+            'resolved_this_month' => $db->table('tickets')
+                ->where('status', 'RESOLU')
+                ->whereMonth('updated_at', now()->month)
+                ->count()
+        ];
     }
 }
