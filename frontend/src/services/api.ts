@@ -19,7 +19,7 @@ function getBaseUrl() {
     
     // Configuration pour la production
     if (hostname.includes('cesizen-prod.chickenkiller.com')) {
-      return `${protocol}//cesizen-prod.chickenkiller.com:8080/api`;  // ← AJOUT DU PORT 8080
+      return `${protocol}//cesizen-prod.chickenkiller.com:8080/api`;
     } else if (hostname.includes('cesizen-dev')) {
       return `${protocol}//cesizen-dev.chickenkiller.com/api`;
     } else if (hostname.includes('cesizen-test')) {
@@ -28,7 +28,7 @@ function getBaseUrl() {
       return 'http://localhost:8000/api';
     } else {
       // Pour la production, pointer vers le port 8080
-      return 'http://cesizen-prod.chickenkiller.com:8080/api';  // ← FALLBACK AVEC PORT 8080
+      return 'http://cesizen-prod.chickenkiller.com:8080/api';
     }
   }
 }
