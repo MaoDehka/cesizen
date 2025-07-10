@@ -9,12 +9,12 @@ Route::get('/', function () {
 // Routes de réinitialisation de mot de passe
 Route::get('/reset-password/{token}', function ($token) {
     // Déterminer l'URL en fonction de l'environnement (HTTP seulement)
-    $frontendUrl = config('app.frontend_url', 'http://cesizen-prod.chickenkiller.com');
+    $frontendUrl = config('app.frontend_url', 'http://cesizen-prod1.chickenkiller.com');
     return redirect()->to($frontendUrl . '/reset-password?token=' . $token);
 })->name('password.reset');
 
 Route::get('/password/reset', function () {
-    $frontendUrl = config('app.frontend_url', 'http://cesizen-prod.chickenkiller.com');
+    $frontendUrl = config('app.frontend_url', 'http://cesizen-prod1.chickenkiller.com');
     return redirect()->to($frontendUrl . '/forgot-password');
 })->name('password.request');
 

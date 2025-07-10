@@ -7,7 +7,7 @@ echo "🎨 Démarrage de CESIZen Frontend..."
 echo "🔧 Injection des variables d'environnement..."
 
 # Variables par défaut (HTTP seulement)
-VITE_API_URL_DEFAULT="http://cesizen-prod.chickenkiller.com/api"
+VITE_API_URL_DEFAULT="http://cesizen-prod1.chickenkiller.com/api"
 VITE_APP_ENV_DEFAULT="production"
 
 # Utiliser les valeurs par défaut si les variables ne sont pas définies

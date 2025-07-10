@@ -46,7 +46,7 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       APP_KEY: base64:${LARAVEL_APP_KEY}
-      APP_URL: http://cesizen-prod.chickenkiller.com
+      APP_URL: http://cesizen-prod1.chickenkiller.com
       
       DB_CONNECTION: mysql
       DB_HOST: mysql
@@ -93,7 +93,7 @@ services:
     platform: linux/amd64
     container_name: cesizen-prod-frontend
     environment:
-      VITE_API_URL: http://cesizen-prod.chickenkiller.com:8080/api
+      VITE_API_URL: http://cesizen-prod1.chickenkiller.com:8080/api
       VITE_APP_ENV: production
     ports:
       - "80:80"  # Frontend directement sur le port 80
