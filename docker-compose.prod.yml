@@ -147,8 +147,8 @@ services:
     image: nginx:alpine
     container_name: cesizen-prod-nginx
     volumes:
-      - ./docker/nginx/prod.conf:/etc/nginx/conf.d/default.conf  # Configuration HTTP simple d'abord
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./backend/docker/nginx/prod.conf:/etc/nginx/conf.d/default.conf  # Configuration HTTP simple d'abord
+      - ./backend/docker/nginx/nginx.conf:/etc/nginx/nginx.conf
       - certbot_www:/var/www/certbot
       - certbot_conf:/etc/letsencrypt
     ports:
