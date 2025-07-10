@@ -1,5 +1,3 @@
-// frontend/src/services/api.ts - Version mise à jour pour HTTPS
-
 import jwtConfig from '../config/jwt';
 import { Capacitor } from '@capacitor/core';
 
@@ -19,17 +17,17 @@ function getBaseUrl() {
     const hostname = window.location.hostname;
     const protocol = window.location.protocol;
     
-    // Forcer HTTPS en production
+    // Configuration pour la production
     if (hostname.includes('cesizen-prod.chickenkiller.com')) {
-      return 'https://cesizen-prod.chickenkiller.com/api';
+      return `${protocol}//cesizen-prod.chickenkiller.com/api`;
     } else if (hostname.includes('cesizen-dev')) {
-      return 'https://cesizen-dev.chickenkiller.com/api';
+      return `${protocol}//cesizen-dev.chickenkiller.com/api`;
     } else if (hostname.includes('cesizen-test')) {
-      return 'https://cesizen-test.chickenkiller.com/api';
+      return `${protocol}//cesizen-test.chickenkiller.com/api`;
     } else if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
       return 'http://localhost:8000/api';
     } else {
-      // Pour la production, utiliser HTTPS avec un chemin relatif
+      // Pour la production, utiliser un chemin relatif (le plus sûr)
       return '/api';
     }
   }
@@ -39,7 +37,7 @@ class ApiService {
   private async request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     const baseUrl = getBaseUrl();
     const url = `${baseUrl}${endpoint}`;
-    console.log(`Envoi de la requête à: ${url}`, { method: options.method || 'GET' });
+    console.log(`🌐 Requête vers: ${url}`, { method: options.method || 'GET' });
 
     // Ajouter les headers par défaut
     const headers: Record<string, string> = {
@@ -58,7 +56,7 @@ class ApiService {
     const fetchOptions: RequestInit = {
       method: options.method || 'GET',
       headers,
-      // Ajout de credentials pour les cookies de session si nécessaire
+      // Credentials pour les cookies de session si nécessaire
       credentials: 'same-origin',
       // Mode CORS pour les requêtes cross-origin
       mode: 'cors',
@@ -67,17 +65,16 @@ class ApiService {
     // Ajouter le body si nécessaire
     if (options.body) {
       fetchOptions.body = JSON.stringify(options.body);
-      console.log('Corps de la requête:', options.body);
     }
     
     try {
       // Effectuer la requête
       const response = await fetch(url, fetchOptions);
-      console.log(`Statut de la réponse: ${response.status}`);
+      console.log(`📡 Réponse: ${response.status} ${response.statusText}`);
 
       // Gérer les erreurs d'authentification
       if (response.status === 401) {
-        // Vérifier si c'est un token expiré et tenter de le rafraîchir si endpoint n'est pas déjà refresh-token
+        // Vérifier si c'est un token expiré et tenter de le rafraîchir
         if (endpoint !== jwtConfig.refreshEndpoint) {
           try {
             const refreshResult = await this.refreshToken();
@@ -97,58 +94,40 @@ class ApiService {
         }
       }
       
-      // Extraire le texte de la réponse pour un meilleur débogage
+      // Gérer les erreurs serveur
+      if (response.status >= 500) {
+        console.error('❌ Erreur serveur:', response.status);
+        throw new Error(`Erreur du serveur (${response.status}). Veuillez réessayer plus tard.`);
+      }
+      
+      // Extraire le texte de la réponse
       const responseText = await response.text();
-      console.log(`Réponse (premiers 200 caractères):`, responseText.substring(0, 200));
       
       // Vérifier si la réponse est OK
       if (!response.ok) {
         let errorMessage = 'Une erreur inconnue est survenue';
-        let errorDetails = '';
-        
-        // Gérer spécifiquement l'erreur 502 Bad Gateway
-        if (response.status === 502) {
-          errorMessage = 'Service temporairement indisponible. Veuillez réessayer dans quelques instants.';
-          console.error('Erreur 502 Bad Gateway - Problème de connexion avec le backend');
-          throw new Error(errorMessage);
-        }
-        
-        // Gérer les erreurs SSL/TLS
-        if (response.status === 0) {
-          errorMessage = 'Erreur de connexion sécurisée. Vérifiez votre connexion HTTPS.';
-          console.error('Erreur SSL/TLS - Problème de certificat ou de connexion sécurisée');
-          throw new Error(errorMessage);
-        }
         
         try {
           // Essayer de parser le texte comme JSON pour extraire un message d'erreur
           const errorData = JSON.parse(responseText);
-          console.log('Données d\'erreur:', errorData);
           
           if (errorData.message) {
             errorMessage = errorData.message;
           }
           
-          if (errorData.error) {
-            errorDetails = errorData.error;
-          }
-          
           // Si nous avons des erreurs de validation
           if (errorData.errors) {
-            console.log('Erreurs de validation:', errorData.errors);
             const validationErrors = Object.values(errorData.errors).flat();
             if (validationErrors.length > 0) {
               errorMessage = validationErrors.join(', ');
             }
           }
         } catch (e) {
-          // Si le texte n'est pas du JSON valide, utiliser le texte brut comme message d'erreur
-          if (responseText && responseText.length < 500) {
-            errorDetails = responseText;
-          }
+          // Si le texte n'est pas du JSON valide, utiliser le statut HTTP
+          errorMessage = `Erreur ${response.status}: ${response.statusText}`;
         }
         
-        console.error('Erreur API:', errorMessage, errorDetails ? `(${errorDetails})` : '');
+        console.error('❌ Erreur API:', errorMessage);
         throw new Error(errorMessage);
       }
       
@@ -156,14 +135,14 @@ class ApiService {
       try {
         return responseText ? JSON.parse(responseText) : {} as T;
       } catch (e) {
-        console.error('Erreur lors du parsing de la réponse JSON:', e, 'Texte brut:', responseText);
-        throw new Error('La réponse du serveur n\'est pas au format JSON valide');
+        console.error('❌ Erreur parsing JSON:', e);
+        throw new Error('Réponse du serveur invalide');
       }
     } catch (error) {
-      // Gérer les erreurs de réseau et SSL/TLS
+      // Gérer les erreurs de réseau
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.error('Erreur de réseau ou SSL/TLS:', error);
-        throw new Error('Erreur de connexion. Vérifiez votre connexion internet et les certificats SSL.');
+        console.error('❌ Erreur réseau:', error);
+        throw new Error('Erreur de connexion. Vérifiez votre connexion internet.');
       }
       
       if (error instanceof Error) {
@@ -193,7 +172,7 @@ class ApiService {
       
       return false;
     } catch (error) {
-      console.error('Erreur lors du rafraîchissement du token:', error);
+      console.error('❌ Erreur rafraîchissement token:', error);
       return false;
     }
   }
@@ -220,21 +199,11 @@ class ApiService {
   }
   
   async put<T>(endpoint: string, data?: any, headers?: Record<string, string>): Promise<T> {
-    try {
-      console.log('PUT request to:', `${getBaseUrl()}${endpoint}`, 'with data:', data);
-      
-      const response = await this.request<T>(endpoint, {
-        method: 'PUT',
-        body: data,
-        headers
-      });
-      
-      console.log('PUT response:', response);
-      return response;
-    } catch (error) {
-      console.error('Error in PUT request:', error);
-      throw error;
-    }
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: data,
+      headers
+    });
   }
   
   async delete<T>(endpoint: string, headers?: Record<string, string>): Promise<T> {
