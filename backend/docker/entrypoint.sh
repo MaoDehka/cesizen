@@ -2,7 +2,9 @@
 set -e
 
 mkdir -p /var/log/supervisor
+mkdir -p /var/log/nginx
 chown www:www /var/log/supervisor
+chown www:www /var/log/nginx
 
 echo "🚀 Démarrage de CESIZen Backend..."
 
@@ -20,12 +22,21 @@ mkdir -p /var/www/html/storage/logs
 mkdir -p /var/www/html/storage/framework/cache
 mkdir -p /var/www/html/storage/framework/sessions
 mkdir -p /var/www/html/storage/framework/views
+mkdir -p /var/www/html/bootstrap/cache
 
 # Définir les permissions
 chown -R www:www /var/www/html/storage
 chown -R www:www /var/www/html/bootstrap/cache
 chmod -R 775 /var/www/html/storage
 chmod -R 775 /var/www/html/bootstrap/cache
+
+# Test de la configuration Nginx
+echo "🔧 Test de la configuration Nginx..."
+nginx -t
+if [ $? -ne 0 ]; then
+    echo "❌ Erreur dans la configuration Nginx"
+    exit 1
+fi
 
 # Optimiser l'application pour la production
 if [ "$APP_ENV" = "production" ]; then

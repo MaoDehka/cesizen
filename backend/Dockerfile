@@ -54,10 +54,9 @@ RUN chown -R www:www /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Configuration Nginx
+# Configuration Nginx interne
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
-COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf
-COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY docker/nginx/backend-internal.conf /etc/nginx/http.d/default.conf
 
 # Configuration PHP-FPM
 COPY docker/php/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
