@@ -9,7 +9,6 @@
       <p>{{ error }}</p>
     </div>
     
-    <!-- Uniquement le contenu dynamique -->
     <div v-else-if="pageContent" class="dynamic-content" @click="handleLinkClick">
       <div v-html="pageContent.content"></div>
     </div>
