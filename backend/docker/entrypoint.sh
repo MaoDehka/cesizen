@@ -30,14 +30,6 @@ chown -R www:www /var/www/html/bootstrap/cache
 chmod -R 775 /var/www/html/storage
 chmod -R 775 /var/www/html/bootstrap/cache
 
-# Test de la configuration Nginx
-echo "🔧 Test de la configuration Nginx..."
-nginx -t
-if [ $? -ne 0 ]; then
-    echo "❌ Erreur dans la configuration Nginx"
-    exit 1
-fi
-
 # Optimiser l'application pour la production
 if [ "$APP_ENV" = "production" ]; then
     echo "🔧 Optimisation pour la production..."
