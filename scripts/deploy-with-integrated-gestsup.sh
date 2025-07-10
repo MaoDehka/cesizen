@@ -18,14 +18,14 @@ docker-compose -f docker-compose.prod.yml up -d
 echo "🔍 Vérification des services..."
 sleep 10
 
-if curl -f https://cesizen-prod.chickenkiller.com/health > /dev/null 2>&1; then
+if curl -f http://cesizen-prod.chickenkiller.com/health > /dev/null 2>&1; then
     echo "✅ CESIZen: OK"
 fi
 
-if curl -f https://cesizen-prod.chickenkiller.com/tickets/ > /dev/null 2>&1; then
+if curl -f http://cesizen-prod.chickenkiller.com/tickets/ > /dev/null 2>&1; then
     echo "✅ Gestsup: OK"
 fi
 
 echo "🎉 Déploiement terminé!"
-echo "🌐 Application: https://cesizen-prod.chickenkiller.com"
-echo "🎫 Tickets: https://cesizen-prod.chickenkiller.com/tickets"
+echo "🌐 Application: http://cesizen-prod.chickenkiller.com"
+echo "🎫 Tickets: http://cesizen-prod.chickenkiller.com/tickets"

@@ -11,11 +11,11 @@ function getBaseUrl() {
   const isNative = Capacitor.isNativePlatform();
   
   if (isNative) {
-    return 'https://cesizen-prod.chickenkiller.com/api';
+    return 'http://cesizen-prod.chickenkiller.com/api';
   } else {
-    // Déterminer l'environnement selon l'URL actuelle
+    // Déterminer l'environnement selon l'URL actuelle (HTTP seulement)
     const hostname = window.location.hostname;
-    const protocol = window.location.protocol;
+    const protocol = 'http:'; // Force HTTP
     
     // Configuration pour la production
     if (hostname.includes('cesizen-prod.chickenkiller.com')) {

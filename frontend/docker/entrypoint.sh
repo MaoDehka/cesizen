@@ -6,8 +6,8 @@ echo "🎨 Démarrage de CESIZen Frontend..."
 # Fonction pour remplacer les variables d'environnement dans les fichiers JS
 echo "🔧 Injection des variables d'environnement..."
 
-# Variables par défaut
-VITE_API_URL_DEFAULT="https://cesizen-prod.chickenkiller.com/api"
+# Variables par défaut (HTTP seulement)
+VITE_API_URL_DEFAULT="http://cesizen-prod.chickenkiller.com/api"
 VITE_APP_ENV_DEFAULT="production"
 
 # Utiliser les valeurs par défaut si les variables ne sont pas définies
