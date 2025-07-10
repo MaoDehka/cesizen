@@ -15,7 +15,7 @@ function getBaseUrl() {
   } else {
     // Déterminer l'environnement selon l'URL actuelle (HTTP seulement)
     const hostname = window.location.hostname;
-    const protocol = 'http:'; // Force HTTP
+    const protocol = 'http:';
     
     // Configuration pour la production
     if (hostname.includes('cesizen-prod.chickenkiller.com')) {
