@@ -18,7 +18,6 @@ echo "Variables utilisées:"
 echo "VITE_API_URL: $API_URL"
 echo "VITE_APP_ENV: $APP_ENV"
 
-# Remplacer les placeholders dans les fichiers JS
 find /usr/share/nginx/html -name "*.js" -type f -exec sed -i "s|VITE_API_URL_PLACEHOLDER|$API_URL|g" {} \; 2>/dev/null || true
 find /usr/share/nginx/html -name "*.js" -type f -exec sed -i "s|VITE_APP_ENV_PLACEHOLDER|$APP_ENV|g" {} \; 2>/dev/null || true
 

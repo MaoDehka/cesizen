@@ -4,8 +4,8 @@ FROM node:20 AS builder
 LABEL org.opencontainers.image.source=https://github.com/OWNER/cesizen
 LABEL org.opencontainers.image.description="CESIZen Frontend - Application de santé mentale"
 
-ARG GITHUB_SHA
-ARG GITHUB_REF_NAME
+ARG GITHUB_SHA=unknown
+ARG GITHUB_REF_NAME=unknown
 
 WORKDIR /app
 
@@ -18,9 +18,11 @@ RUN npm ci
 # Copie du code source
 COPY . .
 
-ENV GITHUB_SHA=$GITHUB_SHA
-ENV GITHUB_REF_NAME=$GITHUB_REF_NAME
-
+ENV VITE_GIT_COMMIT=${GITHUB_SHA}
+ENV VITE_GIT_BRANCH=${GITHUB_REF_NAME}
+RUN export BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ") && \
+    echo "export VITE_BUILD_TIME=$BUILD_TIME" >> /etc/environment
+    
 # Build de l'application
 RUN npm run build
 

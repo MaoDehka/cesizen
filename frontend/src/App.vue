@@ -4,9 +4,9 @@
       <div class="logo-container">
         <img src="./assets/logo.jpg" alt="CESIZen" class="logo" />
         <h1 class="app-title">CESIZen</h1>
-        <!-- Affichage de la version - Discret -->
+        <!-- Affichage de la version - Commit hash -->
         <span class="version-info" @click="toggleVersionDetails">
-          v{{ appVersion }}
+          {{ gitCommit }}
         </span>
       </div>
       
@@ -72,10 +72,9 @@
       <div class="version-modal-content" @click.stop>
         <h3>🚀 Informations de déploiement</h3>
         <div class="version-details">
-          <p><strong>Version:</strong> {{ appVersion }}</p>
-          <p><strong>Déployé le:</strong> {{ formatDate(buildTime) }}</p>
           <p><strong>Commit:</strong> <code>{{ gitCommit }}</code></p>
           <p><strong>Branche:</strong> <code>{{ gitBranch }}</code></p>
+          <p><strong>Déployé le:</strong> {{ formatDate(buildTime) }}</p>
           <p><strong>Environnement:</strong> Production</p>
         </div>
         <button @click="showVersionDetails = false" class="btn-close">Fermer</button>
@@ -127,7 +126,6 @@ export default defineComponent({
     const showVersionDetails = ref(false);
     
     // Informations de version injectées au build
-    const appVersion = __APP_VERSION__;
     const buildTime = __BUILD_TIME__;
     const gitCommit = __GIT_COMMIT__;
     const gitBranch = __GIT_BRANCH__;
@@ -283,7 +281,6 @@ export default defineComponent({
       footerContent,
       parsedMenu,
       showVersionDetails,
-      appVersion,
       buildTime,
       gitCommit,
       gitBranch,
@@ -525,4 +522,4 @@ body {
     padding: 20px;
   }
 }
-</style> 
+</style>
