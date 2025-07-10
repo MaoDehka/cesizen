@@ -24,4 +24,4 @@ find /usr/share/nginx/html -name "*.js" -type f -exec sed -i "s|VITE_APP_ENV_PLA
 echo "✅ Variables d'environnement injectées!"
 echo "✅ CESIZen Frontend prêt!"
 
-# Ne pas executer de commande, laisser nginx démarrer normalement
+# Ne pas executer de commande, laisser nginx démarrer normalement 
