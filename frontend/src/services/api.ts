@@ -11,15 +11,15 @@ function getBaseUrl() {
   const isNative = Capacitor.isNativePlatform();
   
   if (isNative) {
-    return 'https://cesizen-prod.chickenkiller.com/api';
+    return 'http://cesizen-prod.chickenkiller.com:8080/api';
   } else {
-    // Déterminer l'environnement selon l'URL actuelle
+    // Déterminer l'environnement selon l'URL actuelle (HTTP seulement)
     const hostname = window.location.hostname;
-    const protocol = window.location.protocol;
+    const protocol = 'http:';
     
     // Configuration pour la production
     if (hostname.includes('cesizen-prod.chickenkiller.com')) {
-      return `${protocol}//cesizen-prod.chickenkiller.com/api`;
+      return `${protocol}//cesizen-prod.chickenkiller.com:8080/api`;
     } else if (hostname.includes('cesizen-dev')) {
       return `${protocol}//cesizen-dev.chickenkiller.com/api`;
     } else if (hostname.includes('cesizen-test')) {
@@ -27,8 +27,8 @@ function getBaseUrl() {
     } else if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
       return 'http://localhost:8000/api';
     } else {
-      // Pour la production, utiliser un chemin relatif (le plus sûr)
-      return '/api';
+      // Pour la production, pointer vers le port 8080
+      return 'http://cesizen-prod.chickenkiller.com:8080/api';
     }
   }
 }
