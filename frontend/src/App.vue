@@ -3,7 +3,7 @@
     <header class="app-header">
       <div class="logo-container">
         <img src="./assets/logo.jpg" alt="CESIZen" class="logo" />
-        <h1 class="app-title">CESIZen TEST</h1>
+        <h1 class="app-title">CESIZen</h1>
       </div>
       
       <!-- Menu pour utilisateurs connectés -->
