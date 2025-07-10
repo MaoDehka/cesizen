@@ -4,6 +4,10 @@
       <div class="logo-container">
         <img src="./assets/logo.jpg" alt="CESIZen" class="logo" />
         <h1 class="app-title">CESIZen</h1>
+        <!-- Affichage de la version - Discret -->
+        <span class="version-info" @click="toggleVersionDetails">
+          v{{ appVersion }}
+        </span>
       </div>
       
       <!-- Menu pour utilisateurs connectés -->
@@ -62,6 +66,21 @@
         <router-link to="/register" class="btn btn-register">Inscription</router-link>
       </div>
     </header>
+
+    <!-- Modal détails de version (pour la démo) -->
+    <div v-if="showVersionDetails" class="version-modal" @click="showVersionDetails = false">
+      <div class="version-modal-content" @click.stop>
+        <h3>🚀 Informations de déploiement</h3>
+        <div class="version-details">
+          <p><strong>Version:</strong> {{ appVersion }}</p>
+          <p><strong>Déployé le:</strong> {{ formatDate(buildTime) }}</p>
+          <p><strong>Commit:</strong> <code>{{ gitCommit }}</code></p>
+          <p><strong>Branche:</strong> <code>{{ gitBranch }}</code></p>
+          <p><strong>Environnement:</strong> Production</p>
+        </div>
+        <button @click="showVersionDetails = false" class="btn-close">Fermer</button>
+      </div>
+    </div>
     
     <main class="app-content">
       <router-view />
@@ -70,6 +89,12 @@
     <footer class="app-footer">
       <div v-if="footerContent" v-html="footerContent.content.replace('{year}', currentYear.toString())"></div>
       <p v-else>&copy; {{ currentYear }} CESIZen - L'application de votre santé mentale</p>
+      
+      <!-- Version dans le footer (alternative plus discrète) -->
+      <div class="footer-version">
+        Dernière mise à jour: {{ formatDate(buildTime) }} | 
+        <span class="commit-info" @click="toggleVersionDetails">{{ gitCommit }}</span>
+      </div>
     </footer>
   </div>
 </template>
@@ -99,10 +124,33 @@ export default defineComponent({
     const menuContent = ref<Content | null>(null);
     const footerContent = ref<Content | null>(null);
     const parsedMenu = ref<MenuItem[] | null>(null);
+    const showVersionDetails = ref(false);
+    
+    // Informations de version injectées au build
+    const appVersion = __APP_VERSION__;
+    const buildTime = __BUILD_TIME__;
+    const gitCommit = __GIT_COMMIT__;
+    const gitBranch = __GIT_BRANCH__;
     
     const isAuthenticated = computed(() => authStore.isAuthenticated);
     const isAdmin = computed(() => authStore.isAdmin);
     const currentYear = new Date().getFullYear();
+    
+    // Formatage de date pour l'affichage
+    const formatDate = (isoString: string) => {
+      const date = new Date(isoString);
+      return date.toLocaleString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+    
+    const toggleVersionDetails = () => {
+      showVersionDetails.value = !showVersionDetails.value;
+    };
     
     // Vérification périodique de l'expiration du token
     let tokenCheckInterval: number | null = null;
@@ -234,6 +282,13 @@ export default defineComponent({
       menuContent,
       footerContent,
       parsedMenu,
+      showVersionDetails,
+      appVersion,
+      buildTime,
+      gitCommit,
+      gitBranch,
+      formatDate,
+      toggleVersionDetails,
       logout
     };
   }
@@ -241,7 +296,7 @@ export default defineComponent({
 </script>
 
 <style>
-/* Styles globaux */
+/* Styles existants... */
 * {
   margin: 0;
   padding: 0;
@@ -274,6 +329,7 @@ body {
 .logo-container {
   display: flex;
   align-items: center;
+  position: relative;
 }
 
 .logo {
@@ -287,6 +343,98 @@ body {
   color: #4CAF50;
 }
 
+/* Styles pour l'affichage de version */
+.version-info {
+  background-color: #4CAF50;
+  color: white;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 12px;
+  margin-left: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.version-info:hover {
+  background-color: #45a049;
+  transform: scale(1.05);
+}
+
+/* Modal de version pour la démo */
+.version-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.version-modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+}
+
+.version-modal-content h3 {
+  color: #4CAF50;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.version-details p {
+  margin: 10px 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.version-details code {
+  background-color: #f4f4f4;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.btn-close {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.btn-close:hover {
+  background-color: #45a049;
+}
+
+/* Version dans le footer */
+.footer-version {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.commit-info {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.commit-info:hover {
+  color: #4CAF50;
+}
+
+/* Styles existants pour le reste... */
 .nav-menu {
   display: flex;
   gap: 15px;
@@ -346,7 +494,7 @@ body {
   background-color: #333;
   color: white;
   text-align: center;
-  padding: 10px;
+  padding: 15px;
   margin-top: auto;
 }
 
@@ -370,6 +518,11 @@ body {
   .auth-buttons {
     width: 100%;
     justify-content: center;
+  }
+  
+  .version-modal-content {
+    margin: 20px;
+    padding: 20px;
   }
 }
 </style>

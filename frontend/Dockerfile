@@ -4,6 +4,9 @@ FROM node:20 AS builder
 LABEL org.opencontainers.image.source=https://github.com/OWNER/cesizen
 LABEL org.opencontainers.image.description="CESIZen Frontend - Application de santé mentale"
 
+ARG GITHUB_SHA
+ARG GITHUB_REF_NAME
+
 WORKDIR /app
 
 # Copie des fichiers de dépendances
@@ -14,6 +17,9 @@ RUN npm ci
 
 # Copie du code source
 COPY . .
+
+ENV GITHUB_SHA=$GITHUB_SHA
+ENV GITHUB_REF_NAME=$GITHUB_REF_NAME
 
 # Build de l'application
 RUN npm run build
