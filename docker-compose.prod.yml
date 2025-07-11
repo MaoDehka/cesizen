@@ -21,7 +21,7 @@ services:
       timeout: 20s
       retries: 10
 
-  # Redis pour le cache
+  # Redis
   redis:
     image: redis:7-alpine
     container_name: cesizen-prod-redis
@@ -37,7 +37,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # Backend Laravel - EXPOSÉ DIRECTEMENT SUR LE PORT 8080
+  # Backend Laravel
   backend:
     image: ghcr.io/maodehka/cesizen-backend:latest
     platform: linux/amd64
@@ -71,7 +71,7 @@ services:
       - backend_prod_storage:/var/www/html/storage
       - backend_prod_logs:/var/www/html/storage/logs
     ports:
-      - "8080:80"  # Backend accessible sur le port 8080
+      - "8080:80"
     depends_on:
       mysql:
         condition: service_healthy
@@ -87,7 +87,7 @@ services:
       retries: 5
       start_period: 60s
 
-  # Frontend Vue.js - EXPOSÉ DIRECTEMENT SUR LE PORT 80
+  # Frontend Vue.js
   frontend:
     image: ghcr.io/maodehka/cesizen-frontend:latest
     platform: linux/amd64
@@ -96,7 +96,7 @@ services:
       VITE_API_URL: http://cesizen-prod1.chickenkiller.com:8080/api
       VITE_APP_ENV: production
     ports:
-      - "80:80"  # Frontend directement sur le port 80
+      - "80:80" 
     depends_on:
       - backend
     networks:
@@ -109,7 +109,7 @@ services:
       retries: 5
       start_period: 30s
 
-  # Watchtower pour les mises à jour automatiques
+  # Watchtower
   watchtower:
     image: containrrr/watchtower
     container_name: cesizen-prod-watchtower
