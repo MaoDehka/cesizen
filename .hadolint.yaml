@@ -1,20 +1,17 @@
 ignored:
-  - DL3015  # Avoid additional packages by specifying `--no-install-recommends`
-  - DL3020  # Use COPY instead of ADD for files and folders
-  - DL3018  # Pin versions in apk add
+  - DL3015 
+  - DL3020 
+  - DL3018 
 
-# Ignorer les fichiers dans certains dossiers
 ignored-files:
   - "**/vendor/**"
   - "**/node_modules/**" 
   - "gestsup/vendor/**"
   - "*/vendor/*"
 
-# Trusted registries (optionnel)
 trusted-registries:
   - docker.io
   - ghcr.io
 
-# Règles strictes seulement pour nos Dockerfiles
 strict-labels: false
 disable-ignore-pragma: false

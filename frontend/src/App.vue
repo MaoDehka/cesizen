@@ -3,7 +3,7 @@
     <header class="app-header">
       <div class="logo-container">
         <img src="./assets/logo.jpg" alt="CESIZen" class="logo" />
-        <h1 class="app-title">CESIZen test</h1>
+        <h1 class="app-title">CESIZen</h1>
         <!-- Affichage de la version - Commit hash -->
         <span class="version-info" @click="toggleVersionDetails">
           {{ gitCommit }}
